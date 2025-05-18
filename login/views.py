@@ -18,7 +18,8 @@ def login(request):
             student_session.save()
             request.session['session_id'] = student_session.id
 
-            return HttpResponse(f"Student {request.session.get('student_id')} logged in")
+            # return HttpResponse(f"Student {request.session.get('student_id')} logged in")
+            return redirect('practice:practice')
         except Student.DoesNotExist:
             return render(request, 'login/login.html', {'login_form': login_form, 'error': '学生番号が見つかりませんでした。'})
         
