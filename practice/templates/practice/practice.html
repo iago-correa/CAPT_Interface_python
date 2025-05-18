@@ -6,10 +6,12 @@
     {% for audio_path, text in audio_list.items %}
     
         <p>{{ text }}</p>
-        <audio controls>
+        <audio id="{{ audio_path }}">
             <source src="{{ MEDIA_URL }}{{ audio_path }}" type="audio/wav">
             Your browser does not support the audio element.
         </audio>
+
+        <button onclick="document.getElementById('{{ audio_path }}').play()">Play</button>
 
     {% endfor %}
     
