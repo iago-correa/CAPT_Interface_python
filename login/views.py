@@ -24,8 +24,11 @@ def login(request):
             return render(request, 'login/login.html', {'login_form': login_form, 'error': '学生番号が見つかりませんでした。'})
         
     else:
-        login_form = LogInStudent()
-    return render(request, 'login/login.html', {'login_form': login_form})
+        if request.session.get('student_id'):
+            return redirect('practice:practice')
+        else:
+            login_form = LogInStudent()
+            return render(request, 'login/login.html', {'login_form': login_form})
 
 def logout(request):
     request.session.flush()
