@@ -16,4 +16,4 @@ class Recording(models.Model):
         Experiment, 
         on_delete=models.DO_NOTHING, 
         related_name="recordings")
-    filename = models.CharField(max_length=255, unique=True)
+    recorded_audio = models.FileField(upload_to='recording/')
