@@ -1,5 +1,4 @@
 from django.contrib import admin
-from .models import Experiment, Recording
+from .models import Recording
 
-admin.site.register(Experiment)
 admin.site.register(Recording)

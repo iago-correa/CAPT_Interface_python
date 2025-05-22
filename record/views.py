@@ -5,7 +5,7 @@ from django.core.files import File
 from django.shortcuts import render
 from django.conf import settings
 from pathlib import Path
-from .models import Recording, Experiment
+from .models import Recording
 from login.models import Session
 from practice.models import Audio
 
@@ -28,7 +28,6 @@ def record(request):
             original_audio =  Audio.objects.get(filename = 'test_audio.wav')
             recording = Recording(
                 original_audio = original_audio,
-                experiment = Experiment.objects.get(session = Session.objects.get(id = session_id)),
                 recorded_audio = File(f, name=full_path.name))
             recording.save()
 
