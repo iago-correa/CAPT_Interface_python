@@ -3,7 +3,7 @@
 {% block content %}
     <h1>Practice Session</h1>
 
-    {% for audio, transcript in audio_list.items %}
+    {% for audio, transcript, recording in train_set %}
     
         {% csrf_token %}
 
@@ -15,6 +15,15 @@
         </audio>
         
         <button onclick="document.getElementById('{{ audio }}').play()">Play</button>
+
+        <audio id="{{ recording }}">
+            <source src="{{ recording }}" type="audio/wav">
+            Your browser does not support the audio element.
+        </audio>
+        
+        <button onclick="document.getElementById('{{ recording }}').play()">Play recording</button>
+
+        <hr>
 
     {% endfor %}
     

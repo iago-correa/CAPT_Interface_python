@@ -10,27 +10,32 @@ def practice(request):
 
     if request.session.get('student_id'):
         student = Student.objects.get(student_id = request.session['student_id'])
-        
-        training_set = {}
+        session = Session.objects.get(id = request.session['session_id'])
 
         if student.control_group: 
             
             reference_audios = Audio.objects.all().filter(type = "train_nat")
-            recording_audios = Recording.objects.filter(
-                original_audio__in=reference_audios
-            )
-            # Sort by activity.type.time, get the top 1
-            
+            recordings = Recording.objects.filter(
+                activities__session__student=student, 
+                activities__type='train_record',
+                original_audio__in = reference_audios)
+
+
         else:
             
-            reference_audio = Audio.objects.all().filter(type = "train_nat")
-            reference_audio = Audio.objects.all().filter(type = "train_gs", student= student, )
+            reference_audios = Audio.objects.filter(type = "train_gs", student=student)
+            recordings = Recording.objects.filter(
+                activities__session__student=student, 
+                activities__type='train_record',
+                original_audio__in = reference_audios)
         
-        audio_list = {}
+        train_set = []
         for audio in reference_audios:
-            audio_list[audio.file.url] = audio.transcript
+            for recording in recordings:
+                if recording.original_audio == audio:
+                    train_set.append([audio.file.url, audio.transcript, recording.recorded_audio.url])
         
-        return render(request, 'practice/practice.html', {'audio_list': audio_list, 'MEDIA_URL': settings.MEDIA_URL})
+        return render(request, 'practice/practice.html', {'train_set': train_set, 'MEDIA_URL': settings.MEDIA_URL})
     else:
         login_form = LogInStudent()
         return render(request, 'login/login.html', {'login_form': login_form, 'error': 'サインインしてください。'})
