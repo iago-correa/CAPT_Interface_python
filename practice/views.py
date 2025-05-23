@@ -11,19 +11,24 @@ def practice(request):
     if request.session.get('student_id'):
         student = Student.objects.get(student_id = request.session['student_id'])
         
+        training_set = {}
+
         if student.control_group: 
             
-            reference_audio = Audio.objects.all().filter(type = "train_nat")
-            # recording = Recording.objects.all().filter(student = student, original_audio)
+            reference_audios = Audio.objects.all().filter(type = "train_nat")
+            recording_audios = Recording.objects.filter(
+                original_audio__in=reference_audios
+            )
             # Sort by activity.type.time, get the top 1
             
         else:
             
-            reference_audio = Audio.objects.all().filter(type = "train_gs", student= student)
+            reference_audio = Audio.objects.all().filter(type = "train_nat")
+            reference_audio = Audio.objects.all().filter(type = "train_gs", student= student, )
         
         audio_list = {}
-        for audio in reference_audio:
-            audio_list[audio.file.path.split('audio/')[-1]] = audio.transcript
+        for audio in reference_audios:
+            audio_list[audio.file.url] = audio.transcript
         
         return render(request, 'practice/practice.html', {'audio_list': audio_list, 'MEDIA_URL': settings.MEDIA_URL})
     else:

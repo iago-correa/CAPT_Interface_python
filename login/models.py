@@ -19,4 +19,4 @@ class Session(models.Model):
         related_name='sessions')
     
     def __str__(self):
-        return f"Session {self.id} for {self.student.student_id} from {self.start_time} to {self.end_time}"
+        return f"{self.student.student_id}: {self.start_time} - {self.end_time}"

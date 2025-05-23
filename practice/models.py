@@ -5,6 +5,7 @@ from login.models import Student
 class Audio(models.Model):
     
     TYPE_CHOICES = [
+        ('test_nat', 'Pre-training native reference'),
         ('train_nat', 'Native speaker recording'),
         ('train_gs', 'Synthesized golden speaker')
     ]
@@ -18,6 +19,9 @@ class Audio(models.Model):
         null=True, 
         on_delete=models.DO_NOTHING, 
         related_name='audios_for_practice')
+    
+    def __str__(self):
+        return f"{self.file.url}: {self.transcript}"
 
 class Activity(models.Model):
     
@@ -36,14 +40,19 @@ class Activity(models.Model):
                                 related_name="activities")
     audio = models.ForeignKey(Audio, 
                               blank=True,
+                              null=True,
                               on_delete=models.CASCADE, 
                               related_name="activities")
     recording = models.ForeignKey(Recording, 
                               blank=True,
+                              null=True,
                               on_delete=models.CASCADE, 
                               related_name="activities")
     type = models.CharField(max_length=20, choices=TYPE_CHOICES, blank=False)
     time = models.DateTimeField(auto_now_add=True, blank=False)
     
+    def __str__(self):
+        return f"{self.type}: {self.time}"
+
     class Meta:
         verbose_name_plural = "Activities"
