@@ -1,10 +1,14 @@
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.conf import settings
+from django.http import JsonResponse
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 from login.forms import LogInStudent
 from login.models import Student, Session
 from .models import Activity, Audio
 from record.models import Recording
+import json
 
 def practice(request):
 
@@ -20,7 +24,6 @@ def practice(request):
                 activities__type='train_record',
                 original_audio__in = reference_audios)
 
-
         else:
             
             reference_audios = Audio.objects.filter(type = "train_gs", student=student)
@@ -33,13 +36,39 @@ def practice(request):
         for audio in reference_audios:
             for recording in recordings:
                 if recording.original_audio == audio:
-                    train_set.append([audio.file.url, audio.transcript, recording.recorded_audio.url])
+                    train_set.append([audio, recording])
         
         return render(request, 'practice/practice.html', {'train_set': train_set, 'MEDIA_URL': settings.MEDIA_URL})
     else:
         login_form = LogInStudent()
         return render(request, 'login/login.html', {'login_form': login_form, 'error': 'サインインしてください。'})
     
-def track(request):
-    if request.method == "POST":
-        return HttpResponse(f"Pegou o post")
+@csrf_exempt
+def log_activity(request):
+    if request.method == 'POST':
+        session = Session.objects.get(id = request.session['session_id'])
+        data = json.loads(request.body)
+        activity_type = data.get('type')
+
+        if activity_type == 'train_listen_ref':
+            audio = Audio.objects.get(id=data.get('audio_source_id'))
+
+            Activity.objects.create(
+                session=session,
+                audio=audio,
+                type=activity_type,
+                time=timezone.now()
+            )
+
+        elif activity_type == 'train_listen_own':
+            recording = Recording.objects.get(id=data.get('audio_source_id'))
+
+            Activity.objects.create(
+                session=session,
+                recording=recording,
+                type=activity_type,
+                time=timezone.now()
+            )
+
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'invalid request'}, status=400)

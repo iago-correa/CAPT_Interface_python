@@ -3,28 +3,47 @@
 {% block content %}
     <h1>Practice Session</h1>
 
-    {% for audio, transcript, recording in train_set %}
+    {% for audio, recording in train_set %}
     
         {% csrf_token %}
 
-        <p>{{ transcript }}</p>
+        <p>{{ audio.transcript }}</p>
 
-        <audio id="{{ audio }}">
-            <source src="{{ audio }}" type="audio/wav">
+        <audio id="audio_{{ audio.id }}">
+            <source src="{{ audio.file.url }}" type="audio/wav">
             Your browser does not support the audio element.
         </audio>
         
-        <button onclick="document.getElementById('{{ audio }}').play()">Play</button>
+        <button onclick="document.getElementById('audio_{{ audio.id }}').play(); logActivity('{{ audio.id }}', 'train_listen_ref')">Play</button>
 
-        <audio id="{{ recording }}">
-            <source src="{{ recording }}" type="audio/wav">
+        <audio id="recording_{{ recording.id }}">
+            <source src="{{ recording.recorded_audio.url }}" type="audio/wav">
             Your browser does not support the audio element.
         </audio>
         
-        <button onclick="document.getElementById('{{ recording }}').play()">Play recording</button>
+        <button onclick="document.getElementById('recording_{{ recording.id }}').play(); logActivity('{{ recording.id }}', 'train_listen_own')">Play recording</button>
+
 
         <hr>
 
     {% endfor %}
+
+    <script>
+        function logActivity(audioSourceId, typeCode) {
+            console.log("Logging activity:", { audioSourceId, typeCode });
+            fetch("/practice/log-activity/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({
+                    audio_source_id: audioSourceId,
+                    type: typeCode
+                })
+            });
+        }
+    </script>
+
     
 {% endblock %}

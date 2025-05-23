@@ -5,5 +5,5 @@ app_name = 'practice'
 
 urlpatterns = [
     path('', views.practice, name='practice'),
-    path('track/', views.track, name='track_activity')
+    path('log-activity/', views.log_activity, name='log_activity')
 ]
