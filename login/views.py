@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
+from django.utils import timezone
 from .models import Student, Session
 from .forms import LogInStudent
 
@@ -31,7 +32,12 @@ def login(request):
             return render(request, 'login/login.html', {'login_form': login_form})
 
 def logout(request):
+    session = Session.objects.get(id = request.session['session_id'])
+    session.end_time = timezone.now()
+    session.save()
+    
     request.session.flush()
+
     return redirect('login:login')
 
 def sessions_view(request, student_id):
