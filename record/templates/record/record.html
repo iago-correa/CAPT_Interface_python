@@ -1,44 +1,71 @@
 {% extends 'login/base.html' %}
 
 {% block content %}
-    <h1>Record</h1>
+    <h1>Recording Session</h1>
 
-    <button id="startBtn">Start Recording</button>
-    <button id="stopBtn" disabled>Stop Recording</button>
+    {% for audio in test_set %}
+        <div class="audio-block" data-audio-id="{{ audio.id }}">
+            <p>{{ audio.transcript }}</p>
+
+            <audio id="audio_{{ audio.id }}">
+                <source src="{{ audio.file.url }}" type="audio/wav">
+                Your browser does not support the audio element.
+            </audio>
+
+            <button onclick="document.getElementById('audio_{{ audio.id }}').play()">Play</button>
+            <button class="startBtn">Start Recording</button>
+            <button class="stopBtn" disabled>Stop Recording</button>
+
+            <hr>
+        </div>
+    {% endfor %}
 
     <script>
         let mediaRecorder;
         let audioChunks = [];
+        let currentAudioId = null;
 
-        document.getElementById("startBtn").onclick = async () => {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
+        document.querySelectorAll('.startBtn').forEach((startBtn, index) => {
+            const stopBtn = document.querySelectorAll('.stopBtn')[index];
+            const audioBlock = startBtn.closest('.audio-block');
+            const audioId = audioBlock.dataset.audioId;
 
-        mediaRecorder.ondataavailable = e => {
-            audioChunks.push(e.data);
-        };
+            startBtn.onclick = async () => {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                currentAudioId = audioId;
 
-        mediaRecorder.onstop = async () => {
-            const blob = new Blob(audioChunks, { type: 'audio/wav' });
-            const formData = new FormData();
-            formData.append('audio', blob, 'recorded.wav');
+                mediaRecorder.ondataavailable = e => {
+                    audioChunks.push(e.data);
+                };
 
-            await fetch('/record/', {
-            method: 'POST',
-            body: formData
-            });
+                mediaRecorder.onstop = async () => {
+                    const blob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const formData = new FormData();
+                    formData.append('audio', blob, 'recorded.wav');
+                    formData.append('reference_audio', currentAudioId);
 
-            audioChunks = [];
-        };
+                    await fetch('/record/', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        }
+                    });
 
-        mediaRecorder.start();
-        document.getElementById("stopBtn").disabled = false;
-        };
+                    audioChunks = [];
+                };
 
-        document.getElementById("stopBtn").onclick = () => {
-        mediaRecorder.stop();
-        document.getElementById("stopBtn").disabled = true;
-        };
-    </script>
+                mediaRecorder.start();
+                stopBtn.disabled = false;
+            };
+
+            stopBtn.onclick = () => {
+                mediaRecorder.stop();
+                stopBtn.disabled = true;
+            };
+        });
+    </script>   
 
 {% endblock %}
