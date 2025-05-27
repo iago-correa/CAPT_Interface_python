@@ -35,10 +35,13 @@ def logout(request):
     session = Session.objects.get(id = request.session['session_id'])
     session.end_time = timezone.now()
     session.save()
+
+    message = request.GET.get('message', '')
     
     request.session.flush()
 
-    return redirect('login:login')
+    login_form = LogInStudent()
+    return render(request, 'login/login.html', {'login_form': login_form, 'success': message})
 
 def sessions_view(request, student_id):
     return HttpResponse("%s" % student_id)

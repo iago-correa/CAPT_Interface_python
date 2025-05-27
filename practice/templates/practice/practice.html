@@ -3,6 +3,8 @@
 {% block content %}
     <h1>Practice Session</h1>
 
+    <button id="completeTrainingBtn" disabled>Complete Training</button>
+
     {% for audio, recording in train_set %}
     
         {% csrf_token %}
@@ -47,6 +49,12 @@
                     type: typeCode
                 })
             });
+
+            // Update completion status
+            if (typeCode === 'train_listen_ref') {
+                updateCompletionStatus(audioSourceId, 'played');
+            } 
+
         }
 
         let mediaRecorder;
@@ -106,6 +114,7 @@
                         const data = await response.json();
 
                         if (data.status === 'success') {
+                            updateCompletionStatus(currentAudioId, 'recorded');
                             const recording = data.recording;
                             const audioBlock = document.querySelector(`.audio-block[data-audio-id="${currentAudioId}"]`);
 
@@ -134,6 +143,34 @@
                 }
             };
         });
+    
+        const audioIds = Array.from(document.querySelectorAll('.audio-block')).map(div => div.dataset.audioId);
+        const completedStatus = {};  // {audioId: {played: bool, recorded: bool}}
+
+        audioIds.forEach(id => {
+            completedStatus[id] = { played: false, recorded: false };
+        });
+
+        function updateCompletionStatus(audioId, actionType) {
+            if (actionType === 'played') {
+                completedStatus[audioId].played = true;
+            } else if (actionType === 'recorded') {
+                completedStatus[audioId].recorded = true;
+            }
+
+            // Check if all audios were played and recorded
+            const allDone = Object.values(completedStatus).every(status => status.played && status.recorded);
+            const completeBtn = document.getElementById('completeTrainingBtn');
+            completeBtn.disabled = !allDone;
+
+            if (allDone) {
+                completeBtn.onclick = () => {
+                    window.location.href = "/logout/?message=セッション完了しました。";
+                };
+            }
+
+        }
+    
     </script>
 
 
