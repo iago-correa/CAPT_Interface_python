@@ -24,6 +24,7 @@
         let mediaRecorder;
         let audioChunks = [];
         let currentAudioId = null;
+        let activity_type = 'test_pre_record'
 
         document.querySelectorAll('.startBtn').forEach((startBtn, index) => {
             const stopBtn = document.querySelectorAll('.stopBtn')[index];
@@ -45,6 +46,7 @@
                     const formData = new FormData();
                     formData.append('audio', blob, 'recorded.wav');
                     formData.append('reference_audio', currentAudioId);
+                    formData.append('activity_type', activity_type)
 
                     await fetch('/record/', {
                         method: 'POST',

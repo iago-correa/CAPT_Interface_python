@@ -16,27 +16,19 @@ def practice(request):
         student = Student.objects.get(student_id = request.session['student_id'])
         session = Session.objects.get(id = request.session['session_id'])
 
-        if student.control_group: 
-            
-            reference_audios = Audio.objects.all().filter(type = "train_nat")
-            recordings = Recording.objects.filter(
-                activities__session__student=student, 
-                activities__type='train_record',
-                original_audio__in = reference_audios)
-
-        else:
-            
-            reference_audios = Audio.objects.filter(type = "train_gs", student=student)
-            recordings = Recording.objects.filter(
-                activities__session__student=student, 
-                activities__type='train_record',
-                original_audio__in = reference_audios)
-        
         train_set = []
+
+        if student.control_group: 
+            reference_audios = Audio.objects.all().filter(type = "train_nat")
+        else:
+            reference_audios = Audio.objects.filter(type = "train_gs", student=student)
+        
         for audio in reference_audios:
-            for recording in recordings:
-                if recording.original_audio == audio:
-                    train_set.append([audio, recording])
+            recording = Recording.objects.filter(
+                activities__session__student=student, 
+                activities__type='train_record',
+                original_audio = audio).order_by('activities__time').last()
+            train_set.append([audio, recording])
         
         return render(request, 'practice/practice.html', {'train_set': train_set, 'MEDIA_URL': settings.MEDIA_URL})
     else:

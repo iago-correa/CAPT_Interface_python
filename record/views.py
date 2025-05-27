@@ -22,6 +22,7 @@ def record(request):
 
         reference_audio = Audio.objects.get(id=request.POST.get('reference_audio'))
         recorded_audio = request.FILES.get('audio')
+        ativity_type = request.POST.get('activity_type')
 
         recording = Recording(
             original_audio = reference_audio
@@ -33,19 +34,18 @@ def record(request):
         Activity.objects.create(
             session=session,
             recording=recording,
-            type='test_pre_record',
+            type=ativity_type,
             time=timezone.now()
         )
 
-        # full_path = Path(settings.MEDIA_ROOT) / saved_path
-        # with full_path.open(mode="rb") as f:
-        #     original_audio =  reference_audio
-        #     recording = Recording(
-        #         original_audio = original_audio,
-        #         recorded_audio = File(f, name=full_path.name))
-        #     recording.save()
+        return JsonResponse({
+            'status': 'success',
+            'recording': {
+                'id': recording.id,
+                'url': recording.recorded_audio.url
+            }
+        })
 
-        return JsonResponse({'status': 'ok'})
     else:
 
         test_set = Audio.objects.all().filter(type = "test_nat")
