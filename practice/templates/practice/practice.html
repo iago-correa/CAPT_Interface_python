@@ -18,8 +18,7 @@
             
             <button onclick="document.getElementById('audio_{{ audio.id }}').play(); logActivity('{{ audio.id }}', 'train_listen_ref')">Play</button>
 
-            <button class="startBtn">Start Recording</button>
-            <button class="stopBtn" disabled>Stop Recording</button>
+            <button class="recordBtn" data-state="idle">Start Recording</button>
 
             <audio id="recording_{{ recording.id }}">
                 <source src="{{ recording.recorded_audio.url }}" type="audio/wav">
@@ -53,69 +52,90 @@
         let mediaRecorder;
         let audioChunks = [];
         let currentAudioId = null;
-        let activity_type = 'train_record'
+        let activity_type = 'train_record';
+        let activeButton = null;
 
-        document.querySelectorAll('.startBtn').forEach((startBtn, index) => {
-            const stopBtn = document.querySelectorAll('.stopBtn')[index];
-            const audioBlock = startBtn.closest('.audio-block');
+        function disableAllButtons(except) {
+            document.querySelectorAll('button').forEach(btn => {
+                if (btn !== except) btn.disabled = true;
+            });
+        }
+
+        function enableAllButtons() {
+            document.querySelectorAll('button').forEach(btn => btn.disabled = false);
+        }
+
+        document.querySelectorAll('.recordBtn').forEach(recordBtn => {
+            const audioBlock = recordBtn.closest('.audio-block');
             const audioId = audioBlock.dataset.audioId;
 
-            startBtn.onclick = async () => {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
-                audioChunks = [];
-                currentAudioId = audioId;
+            recordBtn.onclick = async () => {
+                const state = recordBtn.getAttribute('data-state');
 
-                mediaRecorder.ondataavailable = e => {
-                    audioChunks.push(e.data);
-                };
-
-                mediaRecorder.onstop = async () => {
-                    const blob = new Blob(audioChunks, { type: 'audio/wav' });
-                    const formData = new FormData();
-                    formData.append('audio', blob, 'recorded.wav');
-                    formData.append('reference_audio', currentAudioId);
-                    formData.append('activity_type', activity_type)
-
-                    const response = await fetch('/record/', {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-CSRFToken': '{{ csrf_token }}'
-                        }
-                    });
-
-                    const data = await response.json();
-
-                    if (data.status === 'success') {
-                        // Update the "Play recording" audio block
-                        const recording = data.recording;
-                        const audioBlock = document.querySelector(`.audio-block[data-audio-id="${currentAudioId}"]`);
-
-                        const audioElement = audioBlock.querySelector('audio[id^="recording_"]');
-                        const sourceElement = audioElement.querySelector('source');
-
-                        audioElement.id = `recording_${recording.id}`;
-                        sourceElement.src = recording.url;
-                        audioElement.load(); 
-
-                        const playBtn = audioBlock.querySelector('button[onclick*="train_listen_own"]');
-                        playBtn.setAttribute('onclick', `document.getElementById('recording_${recording.id}').play(); logActivity('${recording.id}', 'train_listen_own')`);
-                    }
-
+                if (state === 'idle') {
+                    // Start recording
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
                     audioChunks = [];
-                };
+                    currentAudioId = audioId;
+                    activeButton = recordBtn;
 
-                mediaRecorder.start();
-                stopBtn.disabled = false;
-            };
+                    disableAllButtons(recordBtn);
+                    recordBtn.textContent = 'Stop Recording';
+                    recordBtn.setAttribute('data-state', 'recording');
 
-            stopBtn.onclick = () => {
-                mediaRecorder.stop();
-                stopBtn.disabled = true;
+                    mediaRecorder.ondataavailable = e => {
+                        audioChunks.push(e.data);
+                    };
+
+                    mediaRecorder.onstop = async () => {
+                        const blob = new Blob(audioChunks, { type: 'audio/wav' });
+                        const formData = new FormData();
+                        formData.append('audio', blob, 'recorded.wav');
+                        formData.append('reference_audio', currentAudioId);
+                        formData.append('activity_type', activity_type);
+
+                        const response = await fetch('/record/', {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'X-CSRFToken': '{{ csrf_token }}'
+                            }
+                        });
+
+                        const data = await response.json();
+
+                        if (data.status === 'success') {
+                            const recording = data.recording;
+                            const audioBlock = document.querySelector(`.audio-block[data-audio-id="${currentAudioId}"]`);
+
+                            const audioElement = audioBlock.querySelector('audio[id^="recording_"]');
+                            const sourceElement = audioElement.querySelector('source');
+
+                            audioElement.id = `recording_${recording.id}`;
+                            sourceElement.src = recording.url;
+                            audioElement.load();
+
+                            const playBtn = audioBlock.querySelector('button[onclick*="train_listen_own"]');
+                            playBtn.setAttribute('onclick', `document.getElementById('recording_${recording.id}').play(); logActivity('${recording.id}', 'train_listen_own')`);
+                        }
+
+                        enableAllButtons();
+                        recordBtn.textContent = 'Start Recording';
+                        recordBtn.setAttribute('data-state', 'idle');
+                        audioChunks = [];
+                    };
+
+                    mediaRecorder.start();
+                } else {
+                    // Stop recording
+                    mediaRecorder.stop();
+                    activeButton = null;
+                }
             };
         });
     </script>
+
 
     
 {% endblock %}
