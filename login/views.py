@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, reverse
 from django.http import HttpResponse
 from django.utils import timezone
 from .models import Student, Session
@@ -29,7 +29,8 @@ def login(request):
             return redirect('practice:practice')
         else:
             login_form = LogInStudent()
-            return render(request, 'login/login.html', {'login_form': login_form})
+            success_message = request.GET.get('success', '')
+            return render(request, 'login/login.html', {'login_form': login_form, 'success': success_message})
 
 def logout(request):
     session = Session.objects.get(id = request.session['session_id'])
@@ -41,7 +42,8 @@ def logout(request):
     request.session.flush()
 
     login_form = LogInStudent()
-    return render(request, 'login/login.html', {'login_form': login_form, 'success': message})
+    
+    return redirect('/?success=' + message)
 
 def sessions_view(request, student_id):
     return HttpResponse("%s" % student_id)

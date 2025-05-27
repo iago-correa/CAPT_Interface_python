@@ -65,12 +65,18 @@
 
         function disableAllButtons(except) {
             document.querySelectorAll('button').forEach(btn => {
-                if (btn !== except) btn.disabled = true;
+                if (btn !== except && btn.id !== 'completeTrainingBtn') { 
+                    btn.disabled = true;
+                }
             });
         }
 
         function enableAllButtons() {
-            document.querySelectorAll('button').forEach(btn => btn.disabled = false);
+            document.querySelectorAll('button').forEach(btn => {
+                if (btn.id !== 'completeTrainingBtn') {
+                    btn.disabled = false;
+                }
+            });
         }
 
         document.querySelectorAll('.recordBtn').forEach(recordBtn => {
