@@ -19,18 +19,19 @@ def login(request):
             student_session.save()
             request.session['session_id'] = student_session.id
 
-            # return HttpResponse(f"Student {request.session.get('student_id')} logged in")
-            return redirect('practice:practice')
+            # return redirect('practice:practice')
+            return redirect('login:session')
         except Student.DoesNotExist:
             return render(request, 'login/login.html', {'login_form': login_form, 'error': '学生番号が見つかりませんでした。'})
         
     else:
         if request.session.get('student_id'):
-            return redirect('practice:practice')
+            return redirect('login:session')
         else:
             login_form = LogInStudent()
             success_message = request.GET.get('success', '')
-            return render(request, 'login/login.html', {'login_form': login_form, 'success': success_message})
+            error_message = request.GET.get('error', '')
+            return render(request, 'login/login.html', {'login_form': login_form, 'success': success_message, 'error': error_message})
 
 def logout(request):
     session = Session.objects.get(id = request.session['session_id'])
@@ -40,11 +41,13 @@ def logout(request):
     message = request.GET.get('message', '')
     
     request.session.flush()
-
-    login_form = LogInStudent()
     
     return redirect('/?success=' + message)
 
-def sessions_view(request, student_id):
-    return HttpResponse("%s" % student_id)
-    #return render(request, 'login/session.html', {}
+def session(request):
+    
+    if request.session.get('student_id'):
+        return render(request, 'login/session.html', {})
+    else:
+        message = '学生番号でサインしてください。'
+        return redirect('/?error=' + message)
