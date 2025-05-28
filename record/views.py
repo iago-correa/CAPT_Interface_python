@@ -1,6 +1,5 @@
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
-from django.core.files.storage import default_storage
 from django.core.files import File
 from django.shortcuts import render
 from django.conf import settings
