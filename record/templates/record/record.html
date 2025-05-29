@@ -3,18 +3,20 @@
 {% block content %}
     <h1>Recording Session</h1>
 
+    <div class="audio-block" data-audio-id="rec_warmup">
+        <h3>Recording warm-up</h3>
+        <p>I am learning English today.</p>
+        <button class="recordBtn" data-state="idle">Start Recording</button>
+        <audio id="warmup_recording"> Your browser does not support the audio element.</audio>
+        <button id="playWarmupBtn" onclick="document.getElementById('warmup_recording').play()" disabled>Play recording</button>
+        <hr>
+    </div>
+
+    <h3>Recording session</h3>
     {% for audio in test_set %}
         <div class="audio-block" data-audio-id="{{ audio.id }}">
             <p>{{ audio.transcript }}</p>
-
-            <audio id="audio_{{ audio.id }}">
-                <source src="{{ audio.file.url }}" type="audio/wav">
-                Your browser does not support the audio element.
-            </audio>
-
-            <button onclick="document.getElementById('audio_{{ audio.id }}').play()">Play</button>
             <button class="recordBtn" data-state="idle">Start Recording</button>
-
             <hr>
         </div>
     {% endfor %}
@@ -23,8 +25,9 @@
         let mediaRecorder;
         let audioChunks = [];
         let currentAudioId = null;
-        let activity_type = 'test_pre_record'
-        let activeButton = null;
+        let activity_type = 'test_pre_record'; // This may need to be dynamic for other blocks
+        let activeButton = null; // To keep track of the button that initiated the recording
+        let warmupAudioUrl = null; // To store the URL for the warmup audio blob
 
         function disableAllButtons(except) {
             document.querySelectorAll('button').forEach(btn => {
@@ -38,57 +41,107 @@
 
         document.querySelectorAll('.recordBtn').forEach(recordBtn => {
             const audioBlock = recordBtn.closest('.audio-block');
-            const audioId = audioBlock.dataset.audioId;
+            const audioIdFromBlock = audioBlock.dataset.audioId; 
 
             recordBtn.onclick = async () => {
                 const state = recordBtn.getAttribute('data-state');
 
                 if (state === 'idle') {
                     // Start recording
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    mediaRecorder = new MediaRecorder(stream);
-                    audioChunks = [];
-                    currentAudioId = audioId;
-                    activeButton = recordBtn;
-
-                    disableAllButtons(recordBtn);
-                    recordBtn.textContent = 'Stop Recording';
-                    recordBtn.setAttribute('data-state', 'recording');
-
-                    mediaRecorder.ondataavailable = e => {
-                        audioChunks.push(e.data);
-                    };
-
-                    mediaRecorder.onstop = async () => {
-                        const blob = new Blob(audioChunks, { type: 'audio/wav' });
-                        const formData = new FormData();
-                        formData.append('audio', blob, 'recorded.wav');
-                        formData.append('reference_audio', currentAudioId);
-                        formData.append('activity_type', activity_type);
-
-                        const response = await fetch('/record/', {
-                            method: 'POST',
-                            body: formData,
-                            headers: {
-                                'X-CSRFToken': '{{ csrf_token }}'
-                            }
-                        });
-
-                        enableAllButtons();
-                        recordBtn.textContent = 'Start Recording';
-                        recordBtn.setAttribute('data-state', 'idle');
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        mediaRecorder = new MediaRecorder(stream);
                         audioChunks = [];
-                    };
+                        currentAudioId = audioIdFromBlock; // Use the ID from the current block
+                        activeButton = recordBtn; // Set the currently active button
 
-                    mediaRecorder.start();
-                } else {
+                        // If it's a new warm-up recording, revoke the previous blob URL if it exists
+                        if (currentAudioId === 'rec_warmup' && warmupAudioUrl) {
+                            URL.revokeObjectURL(warmupAudioUrl);
+                            warmupAudioUrl = null;
+                            const warmupPlayer = document.getElementById('warmup_recording');
+                            warmupPlayer.src = ''; // Clear previous src
+                            document.getElementById('playWarmupBtn').disabled = true; // Disable play button
+                        } else if (currentAudioId === 'rec_warmup') { 
+                            // This handles the very first warm-up recording click or if warmupAudioUrl was already null
+                            document.getElementById('playWarmupBtn').disabled = true;
+                            const warmupPlayer = document.getElementById('warmup_recording');
+                            warmupPlayer.src = ''; // Ensure src is clear
+                        }
+
+                        disableAllButtons(recordBtn);
+                        recordBtn.textContent = 'Stop Recording';
+                        recordBtn.setAttribute('data-state', 'recording');
+
+                        mediaRecorder.ondataavailable = e => {
+                            audioChunks.push(e.data);
+                        };
+
+                        mediaRecorder.onstop = async () => {
+                            const blob = new Blob(audioChunks, { type: 'audio/wav' });
+
+                            if (currentAudioId === 'rec_warmup') {
+                                // Handle warm-up audio: make it playable locally
+                                warmupAudioUrl = URL.createObjectURL(blob);
+                                const warmupAudioPlayer = document.getElementById('warmup_recording');
+                                warmupAudioPlayer.src = warmupAudioUrl;
+                                warmupAudioPlayer.pause(); // Explicitly pause
+                                warmupAudioPlayer.currentTime = 0; // Rewind to the beginning
+                                document.getElementById('playWarmupBtn').disabled = false; // Enable the play button
+                                
+                                console.log("Warm-up audio recorded. Ready for client-side playback.");
+                                // No fetch request to the server for warm-up
+
+                            } else {
+                                // Handle other recordings: send to server
+                                const formData = new FormData();
+                                formData.append('audio', blob, 'recorded.wav');
+                                formData.append('reference_audio', currentAudioId);
+                                formData.append('activity_type', activity_type);
+
+                                console.log(`Sending audio for ID: ${currentAudioId} to server...`);
+                                try {
+                                    const response = await fetch('/record/', {
+                                        method: 'POST',
+                                        body: formData,
+                                        headers: {
+                                            'X-CSRFToken': '{{ csrf_token }}' 
+                                        }
+                                    });
+                                } catch (error) {
+                                    console.error('Error during fetch to /record/:', error);
+                                }
+                            }
+
+                            // Reset UI for the button that was active
+                            if (activeButton) {
+                                activeButton.textContent = 'Start Recording';
+                                activeButton.setAttribute('data-state', 'idle');
+                            }
+                            enableAllButtons();
+                            audioChunks = []; 
+                            mediaRecorder = null; 
+                            activeButton = null;
+                        };
+
+                        mediaRecorder.start();
+                    } catch (err) {
+                        console.error("Error starting recording:", err);
+                        if (activeButton) {
+                           activeButton.textContent = 'Start Recording';
+                           activeButton.setAttribute('data-state', 'idle');
+                        }
+                        enableAllButtons();
+                        alert("Could not start recording. Please check microphone permissions.");
+                    }
+                } else if (state === 'recording') {
                     // Stop recording
-                    mediaRecorder.stop();
-                    activeButton = null;
+                    if (mediaRecorder) {
+                        mediaRecorder.stop(); // This will trigger the 'onstop' event handler
+                    }
                 }
-
             };
         });
-    </script>   
+    </script>  
 
 {% endblock %}

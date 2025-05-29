@@ -85,7 +85,9 @@ def record(request, t):
         current_period = checkPeriod()
 
         if t == 0 and t == current_period:
-            return HttpResponse("Pre-training")
+            test_set = list(Audio.objects.all().filter(type = "test_nat"))
+            shuffle(test_set)
+            return render(request, 'record/record.html', {'test_set': test_set, 'MEDIA_URL': settings.MEDIA_URL})
         elif t == 2 and t == current_period:
             return HttpResponse("Post-training")
         elif t == 3 and t == current_period:
