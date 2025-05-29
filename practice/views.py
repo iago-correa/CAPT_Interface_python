@@ -56,7 +56,8 @@ def practice(request):
                 activities__type='train_record',
                 original_audio = audio).order_by('activities__time').last()
             train_set.append([audio, recording])
-        
+
+        train_set=train_set[:3]
         return render(request, 'practice/practice.html', {'train_set': train_set, 'MEDIA_URL': settings.MEDIA_URL})
     else:
         login_form = LogInStudent()

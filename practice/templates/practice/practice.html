@@ -1,176 +1,232 @@
 {% extends 'login/base.html' %}
 
 {% block content %}
-    <h1>Practice Session</h1>
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>練習セッション</h1>
+    </div>
 
-    <button id="completeTrainingBtn" disabled>Complete Training</button>
-    <hr>
+    <div class="alert alert-info" role="alert">
+        <h4 class="alert-heading">練習の進め方</h4>
+        <p>まずお手本の音声（「再生」ボタン）を聞いてから、ご自身の発音を録音（「録音開始」ボタン）してください。録音した音声は「録音を再生」ボタンで確認できます。</p>
+        <hr>
+        <p class="mb-0">お手本の再生、ご自身の録音、録音の再生は、何度でも繰り返し行うことができます。ただし、各課題で最低一回ずつお手本を聞き、ご自身の音声を録音すると、「セッション完了」ボタンが有効になります。全ての課題が完了したら、ページ下部の「セッション完了」ボタンを押してください。</p>
+    </div>
 
     {% for audio, recording in train_set %}
-        {% csrf_token %} 
-        <div class="audio-block" data-audio-id="{{ audio.id }}">
-            <p>
-                <input type="checkbox" class="completion-checkbox" data-audio-id-chk="{{ audio.id }}" disabled style="margin-right: 5px;" />
-                {{ audio.transcript }}
-            </p>
+        {% csrf_token %}
+        <div class="audio-block card mb-3" data-audio-id="{{ audio.id }}">
+            <div class="card-body">
+                <p class="mb-3">
+                    <input type="checkbox" class="completion-checkbox form-check-input" data-audio-id-chk="{{ audio.id }}" disabled style="margin-right: 10px;" />
+                    {{ audio.transcript }}
+                </p>
 
-            <audio id="audio_player_{{ audio.id }}"> {# Changed ID for clarity #}
-                <source src="{{ audio.file.url }}" type="audio/wav">
-                Your browser does not support the audio element.
-            </audio>
+                <audio id="audio_player_{{ audio.id }}">
+                    <source src="{{ audio.file.url }}" type="audio/wav">
+                    ご利用のブラウザはオーディオ要素をサポートしていません。
+                </audio>
 
-            <button class="playReferenceBtn" data-audio-id-ref="{{ audio.id }}">Play Reference</button>
+                <audio id="recording_player_{{ audio.id }}">
+                    {% if recording and recording.recorded_audio.url %}
+                        <source src="{{ recording.recorded_audio.url }}" type="audio/wav">
+                    {% endif %}
+                    ご利用のブラウザはオーディオ要素をサポートしていません。
+                </audio>
 
-            <button class="recordBtn" data-state="idle" data-audio-id-rec="{{ audio.id }}">Start Recording</button>
-
-            <audio id="recording_player_{{ audio.id }}">
-                {% if recording and recording.recorded_audio.url %}
-                    <source src="{{ recording.recorded_audio.url }}" type="audio/wav">
-                {% endif %}
-                Your browser does not support the audio element.
-            </audio>
-            <button class="playRecordingBtn" data-audio-id-playrec="{{ audio.id }}" {% if not recording %}disabled{% endif %}>Play My Latest Recording</button>
+                <div class="mt-2">
+                    <button class="playReferenceBtn btn btn-primary btn-sm me-2" data-audio-id-ref="{{ audio.id }}">再生</button>
+                    <button class="recordBtn btn btn-danger btn-sm me-2" data-state="idle" data-audio-id-rec="{{ audio.id }}" disabled>録音開始</button>
+                    {# Add data-recording-id attribute for initial recording #}
+                    <button class="playRecordingBtn btn btn-sm me-2 btn-outline-secondary disabled pe-none" 
+                            data-audio-id-playrec="{{ audio.id }}" 
+                            {% if recording and recording.id %}data-recording-id="{{ recording.id }}"{% else %}data-recording-id=""{% endif %}
+                            {% if not recording or not recording.recorded_audio.url %}disabled{% endif %}>録音を再生</button>
+                </div>
+            </div>
         </div>
-        <hr>
     {% endfor %}
 
-    <script>
-        let mediaRecorder;
-        let audioChunks = [];
-        let currentAudioIdForRecording = null; 
-        const csrfToken = "{{ csrf_token }}"; 
+    {% if not train_set %}
+        <p class="text-muted">利用可能な練習課題はありません。</p>
+    {% endif %}
 
-        // Object to track listened and recorded status per audio ID for the current session
-        // e.g., { "audio_id_1": { listened: false, recorded: false }, ... }
-        let sessionCompletionStatus = {};
+    <div class="mt-4 mb-5 d-grid">
+      <button id="completeTrainingBtn" class="btn btn-lg btn-outline-success disabled pe-none" disabled>セッション完了</button>
+    </div>
+</div>
 
-        document.addEventListener('DOMContentLoaded', () => {
-            document.querySelectorAll('.audio-block').forEach(block => {
-                const audioId = block.dataset.audioId;
-                if (audioId) {
-                    sessionCompletionStatus[audioId] = { listened: false, recorded: false };
+<script>
+    let mediaRecorder;
+    let audioChunks = [];
+    let currentAudioIdForRecording = null;
+    const csrfToken = "{{ csrf_token }}";
+    let sessionCompletionStatus = {};
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.audio-block[data-audio-id]').forEach(block => {
+            const audioId = block.dataset.audioId;
+            if (audioId) {
+                sessionCompletionStatus[audioId] = { listened: false, recorded: false };
+                const playMyRecBtn = block.querySelector(`.playRecordingBtn[data-audio-id-playrec="${audioId}"]`);
+                const player = document.getElementById(`recording_player_${audioId}`);
+                if (playMyRecBtn && player) {
+                    const hasInitialSource = player.querySelector('source') && player.querySelector('source').getAttribute('src');
+                    if (hasInitialSource) {
+                        const initialEnable = () => {
+                            if (player.currentSrc && player.currentSrc !== window.location.href && !player.currentSrc.endsWith('/')) {
+                                playMyRecBtn.classList.remove('btn-outline-secondary', 'disabled', 'pe-none');
+                                playMyRecBtn.classList.add('btn-primary');
+                                playMyRecBtn.disabled = false;
+                            }
+                            player.removeEventListener('canplay', initialEnable);
+                            player.removeEventListener('loadeddata', initialEnable);
+                        };
+                        player.addEventListener('canplay', initialEnable);
+                        player.addEventListener('loadeddata', initialEnable);
+                        if(player.readyState >= 2) initialEnable(); 
+                    } else {
+                        playMyRecBtn.classList.add('btn-outline-secondary', 'disabled', 'pe-none');
+                        playMyRecBtn.disabled = true;
+                    }
                 }
+            }
+        });
+        updateCompleteTrainingButtonVisualState();
+        initializeButtonListeners();
+    });
+
+    function checkAndSetCheckbox(audioId) {
+        const checkbox = document.querySelector(`.completion-checkbox[data-audio-id-chk="${audioId}"]`);
+        if (checkbox && sessionCompletionStatus[audioId]) {
+            checkbox.checked = sessionCompletionStatus[audioId].listened && sessionCompletionStatus[audioId].recorded;
+        }
+    }
+
+    function updateCompleteTrainingButtonVisualState() {
+        const completeBtn = document.getElementById('completeTrainingBtn');
+        if (!completeBtn) return;
+        const allTasksDone = Object.values(sessionCompletionStatus).length > 0 && Object.values(sessionCompletionStatus).every(status => status.listened && status.recorded);
+        completeBtn.disabled = !allTasksDone;
+        if (allTasksDone) {
+            completeBtn.classList.remove('disabled', 'pe-none', 'btn-outline-success');
+            completeBtn.classList.add('btn-success');
+            completeBtn.onclick = () => {
+                window.location.href = "{% url 'login:logout' %}?message=" + encodeURIComponent("練習セッションお疲れ様でした！");
+            };
+        } else {
+            completeBtn.classList.remove('btn-success');
+            completeBtn.classList.add('disabled', 'pe-none', 'btn-outline-success');
+            completeBtn.onclick = null;
+        }
+    }
+
+    async function logActivityToServer(audioSourceId, typeCode) {
+        console.log("Logging activity to server:", { audioSourceId, typeCode });
+        try {
+            const response = await fetch("/practice/log-activity/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+                body: JSON.stringify({ audio_source_id: audioSourceId, type: typeCode })
             });
-            updateCompleteTrainingButtonState(); // Initial state
+            if (!response.ok) console.error("Failed to log activity to server:", typeCode, audioSourceId, await response.text());
+            return response.ok;
+        } catch (error) {
+            console.error("Error in logActivityToServer fetch:", error);
+            return false;
+        }
+    }
+    
+    function setPageInteractiveState(isRecordingInProgress, currentRecordButton = null) {
+        document.querySelectorAll('.playReferenceBtn, .recordBtn, .playRecordingBtn, #completeTrainingBtn').forEach(btn => {
+            if (btn === currentRecordButton && isRecordingInProgress) {
+                btn.disabled = false; 
+            } else {
+                btn.disabled = isRecordingInProgress;
+            }
         });
 
-        function checkAndSetCheckbox(audioId) {
-            const checkbox = document.querySelector(`.completion-checkbox[data-audio-id-chk="${audioId}"]`);
-            if (checkbox && sessionCompletionStatus[audioId]) {
-                if (sessionCompletionStatus[audioId].listened && sessionCompletionStatus[audioId].recorded) {
-                    checkbox.checked = true;
+        if (!isRecordingInProgress) {
+            document.querySelectorAll('.playReferenceBtn').forEach(btn => btn.disabled = false);
+            document.querySelectorAll('.recordBtn').forEach(btn => {
+                const audioId = btn.dataset.audioIdRec;
+                btn.disabled = !(sessionCompletionStatus[audioId]?.listened || (btn === currentRecordButton && btn.getAttribute('data-state') === 'idle'));
+            });
+            document.querySelectorAll('.playRecordingBtn').forEach(prb => {
+                const audioId = prb.dataset.audioIdPlayrec;
+                const player = document.getElementById(`recording_player_${audioId}`);
+                const recordingId = prb.dataset.recordingId; // Check if it has a recording ID
+                const hasValidSource = player && player.currentSrc && player.currentSrc !== window.location.href && !player.currentSrc.endsWith('/') && recordingId;
+                
+                prb.disabled = !hasValidSource;
+                if (hasValidSource) {
+                    prb.classList.remove('btn-outline-secondary', 'disabled', 'pe-none');
+                    prb.classList.add('btn-primary');
+                } else {
+                    prb.classList.remove('btn-primary');
+                    prb.classList.add('btn-outline-secondary', 'disabled', 'pe-none');
                 }
-            }
+            });
+            updateCompleteTrainingButtonVisualState();
         }
+    }
 
-        function updateCompleteTrainingButtonState() {
-            const completeBtn = document.getElementById('completeTrainingBtn');
-            if (!completeBtn) return;
-
-            const allTasksDone = Object.values(sessionCompletionStatus).every(status => status.listened && status.recorded);
-            const hasTasks = Object.keys(sessionCompletionStatus).length > 0;
-
-            completeBtn.disabled = !(allTasksDone && hasTasks);
-
-            if (allTasksDone && hasTasks) {
-                completeBtn.onclick = () => {
-                    window.location.href = "{% url 'login:logout' %}?message=" + encodeURIComponent("トレーニングお疲れ様でした！");
-                };
-            } else {
-                completeBtn.onclick = null; // Remove click handler if not all done
-            }
-        }
-
-        // Function to log activities (listening to reference or own recording)
-        async function logActivityToServer(audioSourceId, typeCode) {
-            console.log("Logging activity to server:", { audioSourceId, typeCode });
-            try {
-                const response = await fetch("/practice/log-activity/", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRFToken": csrfToken
-                    },
-                    body: JSON.stringify({
-                        audio_source_id: audioSourceId, // Can be audio.id or recording.id
-                        type: typeCode
-                    })
-                });
-                if (!response.ok) {
-                    console.error("Failed to log activity to server:", typeCode, audioSourceId, await response.text());
-                }
-                return response.ok;
-            } catch (error) {
-                console.error("Error in logActivityToServer fetch:", error);
-                return false;
-            }
-        }
-
-        // Event listeners for "Play Reference" buttons
+    function initializeButtonListeners() {
         document.querySelectorAll('.playReferenceBtn').forEach(button => {
             button.onclick = async () => {
                 const audioId = button.dataset.audioIdRef;
                 const player = document.getElementById(`audio_player_${audioId}`);
+                const recordBtnForThisAudio = document.querySelector(`.recordBtn[data-audio-id-rec="${audioId}"]`);
+
                 if (player) {
-                    player.play();
-                    const logged = await logActivityToServer(audioId, 'train_listen_ref');
-                    if (logged && sessionCompletionStatus[audioId]) {
-                        sessionCompletionStatus[audioId].listened = true;
-                        console.log(`Audio ${audioId} marked as listened in session.`);
-                        checkAndSetCheckbox(audioId);
-                        updateCompleteTrainingButtonState();
-                    }
-                }
-            };
-        });
-
-        // Event listeners for "Play My Latest Recording" buttons
-        document.querySelectorAll('.playRecordingBtn').forEach(button => {
-            button.onclick = async () => {
-                const audioId = button.dataset.audioIdPlayrec; // This is the original audio's ID
-                const player = document.getElementById(`recording_player_${audioId}`);
-                if (player && player.currentSrc && player.src !== window.location.href) { // Check if src is valid
-                    player.play();
-                        const specificRecordingId = button.dataset.specificRecordingId;
-                        if (specificRecordingId) {
-                        await logActivityToServer(specificRecordingId, 'train_listen_own');
+                    document.querySelectorAll('audio').forEach(aud => { if (aud !== player) aud.pause(); });
+                    
+                    const onAudioEnded = () => {
+                        if (sessionCompletionStatus[audioId]) {
+                            sessionCompletionStatus[audioId].listened = true;
+                            if (recordBtnForThisAudio) {
+                                recordBtnForThisAudio.disabled = false; 
+                            }
+                            checkAndSetCheckbox(audioId);
+                            updateCompleteTrainingButtonVisualState();
                         }
-                } else {
-                    console.warn("No recording source to play for original audio:", audioId);
+                        player.removeEventListener('ended', onAudioEnded); 
+                    };
+                    player.removeEventListener('ended', onAudioEnded); // Ensure only one listener
+                    player.addEventListener('ended', onAudioEnded);
+                    
+                    if (sessionCompletionStatus[audioId]?.listened && recordBtnForThisAudio) {
+                         recordBtnForThisAudio.disabled = false;
+                    }
+                    player.currentTime = 0;
+                    player.play();
+                    await logActivityToServer(audioId, 'train_listen_ref');
                 }
             };
         });
 
+        document.querySelectorAll('.playRecordingBtn').forEach(button => {
+            button.onclick = async () => { // Make it async to await logActivityToServer
+                const audioId = button.dataset.audioIdPlayrec; // This is the original audio ID
+                const recordingIdToLog = button.dataset.recordingId; // This is the specific Recording.id
+                const player = document.getElementById(`recording_player_${audioId}`);
 
-        // Simplified button disabling during recording
-        function setPracticeButtonsRecordingState(isRecording, recordingButton) {
-            document.querySelectorAll('.playReferenceBtn, .playRecordingBtn, .recordBtn, #completeTrainingBtn').forEach(btn => {
-                if (btn !== recordingButton) { // Don't disable the button that needs to be clicked to stop
-                    btn.disabled = isRecording;
+                if (player && player.currentSrc && player.currentSrc !== window.location.href && !player.currentSrc.endsWith('/') && recordingIdToLog) {
+                    document.querySelectorAll('audio').forEach(aud => { if (aud !== player) aud.pause(); });
+                    player.currentTime = 0;
+                    player.play();
+                    // Call logActivityToServer with the specific recording ID
+                    await logActivityToServer(recordingIdToLog, 'train_listen_own');
+                } else {
+                    if (!recordingIdToLog) console.warn("PlayRecordingBtn: Missing recording-id for logging on button for original audio:", audioId);
+                    console.warn("PlayRecordingBtn: No valid source or recording ID for audio:", audioId, player ? player.currentSrc : 'no player');
                 }
-            });
-             if(recordingButton){ // ensure the active recording button's state is managed correctly
-                recordingButton.disabled = isRecording ? false : (sessionCompletionStatus[recordingButton.dataset.audioIdRec]?.recorded && sessionCompletionStatus[recordingButton.dataset.audioIdRec]?.listened);
-             }
-             if(!isRecording){ // after recording stops, re-evaluate all buttons
-                updateCompleteTrainingButtonState();
-                // Re-enable play buttons if they have sources
-                 document.querySelectorAll('.playRecordingBtn').forEach(prb => {
-                    const player = document.getElementById(`recording_player_${prb.dataset.audioIdPlayrec}`);
-                    if (player && player.currentSrc && player.src !== window.location.href) {
-                         prb.disabled = false;
-                    } else {
-                         prb.disabled = true;
-                    }
-                 });
-             }
-        }
+            };
+        });
 
-
-        // Event listeners for "Start/Stop Recording" buttons
         document.querySelectorAll('.recordBtn').forEach(recordBtn => {
             recordBtn.onclick = async () => {
-                currentAudioIdForRecording = recordBtn.dataset.audioIdRec; // Original audio.id
+                currentAudioIdForRecording = recordBtn.dataset.audioIdRec;
                 const state = recordBtn.getAttribute('data-state');
 
                 if (state === 'idle') {
@@ -178,80 +234,110 @@
                         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                         mediaRecorder = new MediaRecorder(stream);
                         audioChunks = [];
-
-                        setPracticeButtonsRecordingState(true, recordBtn);
-                        recordBtn.textContent = 'Stop Recording';
+                        setPageInteractiveState(true, recordBtn);
+                        recordBtn.textContent = '録音停止';
                         recordBtn.setAttribute('data-state', 'recording');
 
                         mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-
                         mediaRecorder.onstop = async () => {
                             const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/wav' });
                             audioChunks = [];
-
                             const formData = new FormData();
-                            formData.append('audio', blob, `train_rec_${currentAudioIdForRecording}.webm`);
+                            let fileExtension = (mediaRecorder.mimeType && mediaRecorder.mimeType.includes('webm')) ? 'webm' : (mediaRecorder.mimeType && mediaRecorder.mimeType.includes('ogg')) ? 'ogg' : 'bin';
+                            formData.append('audio', blob, `train_rec_${currentAudioIdForRecording}.${fileExtension}`);
                             formData.append('reference_audio', currentAudioIdForRecording);
                             formData.append('activity_type', 'train_record');
 
+                            let recordingSavedSuccessfully = false;
+                            const playBtnForThisAudio = document.querySelector(`.playRecordingBtn[data-audio-id-playrec="${currentAudioIdForRecording}"]`);
+                            const player = document.getElementById(`recording_player_${currentAudioIdForRecording}`);
+
                             try {
-                                const response = await fetch('/record/1/', { // POST to /record/1/ for training
-                                    method: 'POST',
-                                    body: formData,
-                                    headers: { 'X-CSRFToken': csrfToken }
+                                const response = await fetch('/record/1/', {
+                                    method: 'POST', body: formData, headers: { 'X-CSRFToken': csrfToken }
                                 });
                                 const data = await response.json();
-
                                 if (response.ok && data.status === 'success' && data.recording) {
-                                    console.log(`Recording for audio ${currentAudioIdForRecording} successful.`);
                                     if (sessionCompletionStatus[currentAudioIdForRecording]) {
                                         sessionCompletionStatus[currentAudioIdForRecording].recorded = true;
-                                        console.log(`Audio ${currentAudioIdForRecording} marked as recorded in session.`);
-                                        checkAndSetCheckbox(currentAudioIdForRecording);
+                                    }
+                                    recordingSavedSuccessfully = true;
+                                    
+                                    player.innerHTML = ''; 
+                                    const source = document.createElement('source');
+                                    source.src = data.recording.url;
+                                    source.type = 'audio/wav';
+                                    player.appendChild(source);
+                                    
+                                    const updatePlayButton = () => {
+                                        if (playBtnForThisAudio) {
+                                            playBtnForThisAudio.disabled = false;
+                                            playBtnForThisAudio.classList.remove('btn-outline-secondary', 'disabled', 'pe-none');
+                                            playBtnForThisAudio.classList.add('btn-primary');
+                                            // Store the new recording's ID on the button for logging
+                                            playBtnForThisAudio.dataset.recordingId = data.recording.id;
+                                        }
+                                        player.removeEventListener('loadeddata', updatePlayButton); 
+                                        player.removeEventListener('canplay', updatePlayButton);    
+                                    };
+                                    player.addEventListener('loadeddata', updatePlayButton);
+                                    player.addEventListener('canplay', updatePlayButton); 
+                                    
+                                    player.onerror = () => {
+                                         if (playBtnForThisAudio) {
+                                            playBtnForThisAudio.disabled = true;
+                                            playBtnForThisAudio.classList.remove('btn-primary');
+                                            playBtnForThisAudio.classList.add('btn-outline-secondary', 'disabled', 'pe-none');
+                                            playBtnForThisAudio.dataset.recordingId = ""; // Clear recording ID
+                                        }
+                                        player.removeEventListener('loadeddata', updatePlayButton);
+                                        player.removeEventListener('canplay', updatePlayButton);
+                                    };
+                                    player.load();
+                                    if (playBtnForThisAudio && data.recording.url) {
+                                        setTimeout(() => { 
+                                            if (player.currentSrc && player.currentSrc !== window.location.href && !player.currentSrc.endsWith('/')) {
+                                                if (!playBtnForThisAudio.classList.contains('btn-primary')){
+                                                    playBtnForThisAudio.disabled = false;
+                                                    playBtnForThisAudio.classList.remove('btn-outline-secondary', 'disabled', 'pe-none');
+                                                    playBtnForThisAudio.classList.add('btn-primary');
+                                                    playBtnForThisAudio.dataset.recordingId = data.recording.id;
+                                                }
+                                            }
+                                        }, 100); 
                                     }
 
-                                    const player = document.getElementById(`recording_player_${currentAudioIdForRecording}`);
-                                    const source = player.querySelector('source') || document.createElement('source');
-                                    source.src = data.recording.url; // URL of the new recording
-                                    source.type = 'audio/wav'; // Assuming server converts to wav
-                                    if (!player.hasChildNodes()) player.appendChild(source);
-                                    else player.load(); // Load new source if source element already exists
 
-                                    const playBtn = document.querySelector(`.playRecordingBtn[data-audio-id-playrec="${currentAudioIdForRecording}"]`);
-                                    if (playBtn) {
-                                        playBtn.disabled = false; // Enable button to play the new recording
-                                        playBtn.dataset.specificRecordingId = data.recording.id; 
-                                    }
                                 } else {
-                                    console.error("Failed to save recording for audio " + currentAudioIdForRecording + ":", data ? data.message : response.statusText);
-                                    alert("Error: Could not save your recording. " + (data ? data.message : ""));
+                                    alert("エラー: 録音を保存できませんでした。" + (data ? data.message : ""));
                                 }
                             } catch (error) {
-                                console.error("Fetch error for recording audio " + currentAudioIdForRecording + ":", error);
-                                alert("Network error while saving recording. Please try again.");
+                                alert("録音保存中にネットワークエラーが発生しました。もう一度お試しください。");
                             } finally {
-                                recordBtn.textContent = 'Start Recording'; // Or "Re-record"
+                                recordBtn.textContent = '録音開始';
                                 recordBtn.setAttribute('data-state', 'idle');
-                                setPracticeButtonsRecordingState(false, null); // Re-enable relevant buttons
-                                updateCompleteTrainingButtonState(); 
+                                if (recordingSavedSuccessfully) {
+                                    checkAndSetCheckbox(currentAudioIdForRecording);
+                                }
+                                setPageInteractiveState(false, recordBtn);
                             }
-                        }; // End onstop
+                        };
                         mediaRecorder.start();
                     } catch (err) {
-                        console.error("Could not start recording for audio " + currentAudioIdForRecording + ":", err);
-                        alert("Could not start recording. Please check microphone permissions.");
-                        recordBtn.textContent = 'Start Recording';
+                        alert("録音を開始できませんでした。マイクの許可を確認してください。");
+                        recordBtn.textContent = '録音開始';
                         recordBtn.setAttribute('data-state', 'idle');
-                        setPracticeButtonsRecordingState(false, null); // Re-enable buttons on error
+                        setPageInteractiveState(false);
                     }
                 } else if (state === 'recording') {
                     if (mediaRecorder && mediaRecorder.state === "recording") {
-                        recordBtn.textContent = 'Stopping...';
-                        recordBtn.disabled = true; // Disable while stopping
+                        recordBtn.textContent = '停止中...';
+                        recordBtn.disabled = true;
                         mediaRecorder.stop();
                     }
                 }
-            }; // End recordBtn.onclick
-        }); // End forEach for recordBtn
-    </script>
+            };
+        });
+    }
+</script>
 {% endblock %}

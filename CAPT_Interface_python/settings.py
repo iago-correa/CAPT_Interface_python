@@ -139,15 +139,17 @@ SESSION_COOKIE_AGE = 10800
 # Experiment Period Dates (Year, Month, Day, Hour, Minute, Second)
 import datetime
 
+
+
 PERIOD_DATES = {
     'PRE_START':      (2025, 5, 20, 0, 0, 0),
-    'PRE_END':        (2025, 5, 21, 23, 59, 0),
-    'TRAINING_START': (2025, 5, 22, 0, 0, 0),
-    'TRAINING_END':   (2025, 5, 23, 0, 0, 0), 
-    'POST_START':     (2025, 5, 24, 10, 0, 0),
-    'POST_END':       (2025, 5, 25, 18, 0, 0),
-    'DELAY_START':    (2025, 5, 30, 0, 0, 0),
-    'DELAY_END':      (2025, 6, 1, 23, 0, 0), 
+    'PRE_END':        (2025, 5, 21, 0, 0, 0),
+    'TRAINING_START': (2025, 5, 30, 0, 0, 0),
+    'TRAINING_END':   (2025, 5, 31, 0, 0, 0), 
+    'POST_START':     (2025, 5, 20, 0, 0, 0),
+    'POST_END':       (2025, 5, 21, 0, 0, 0),
+    'DELAY_START':    (2025, 5, 20, 0, 0, 0),
+    'DELAY_END':      (2025, 5, 21, 0, 0, 0), 
 }
 
 # # Dates for the experiment

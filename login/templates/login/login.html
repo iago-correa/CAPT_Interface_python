@@ -1,18 +1,61 @@
 {% extends 'login/base.html' %}
 
 {% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card mt-4">
+            <div class="card-body">
+                <h3 class="card-title text-center mb-4">ログイン</h3>
 
-    {% if error %}
-        <p style="color: red;">{{ error }}</p>
-    {% endif %}
+                {% if error %}
+                    <div class="alert alert-danger" role="alert">
+                        {{ error }}
+                    </div>
+                {% endif %}
 
-    {% if success %}
-        <p style="color: green;">{{ success }}</p>
-    {% endif %}
-    
-    <form method="post" action="/">
-        {% csrf_token %}
-        {{login_form.as_p}}
-        <button type="submit", name="login_button">サインイン</button>
-    </form>
+                {% if success %}
+                    <div class="alert alert-success" role="alert">
+                        {{ success }}
+                    </div>
+                {% endif %}
+                
+                <form method="post" action="{% url 'login:login' %}"> 
+                    {% csrf_token %}
+
+                    {% for field in login_form %}
+                        <div class="mb-3">
+                            <label for="{{ field.id_for_label }}" class="form-label">{{ field.label_tag }}</label>
+                            {{ field }} 
+                            {% if field.help_text %}
+                                <small class="form-text text-muted">{{ field.help_text }}</small>
+                            {% endif %}
+                            {% for error in field.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                    
+                    <div class="d-grid">
+                        <button type="submit" name="login_button" class="btn btn-primary btn-block">サインイン</button> 
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var formInputs = document.querySelectorAll('#content form input[type="text"], #content form input[type="password"], #content form select');
+        formInputs.forEach(function(input) {
+            if (!input.classList.contains('form-control')) {
+                input.classList.add('form-control');
+            }
+        });
+    });
+</script>
+
 {% endblock %}

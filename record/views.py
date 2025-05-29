@@ -122,6 +122,7 @@ def record(request, t):
 
         target_audio_set_type = "test_nat"
         all_required_audios = list(Audio.objects.filter(type=target_audio_set_type))
+        all_required_audios = all_required_audios[:3]
         total_required_count = len(all_required_audios)
 
         if current_activity_type != 'train_record':
