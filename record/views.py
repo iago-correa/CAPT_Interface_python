@@ -56,7 +56,7 @@ def record(request, t):
 
         reference_audio = Audio.objects.get(id=request.POST.get('reference_audio'))
         recorded_audio = request.FILES.get('audio')
-        ativity_type = request.POST.get('activity_type')
+        activity_type = request.POST.get('activity_type')
 
         recording = Recording(
             original_audio = reference_audio
@@ -68,7 +68,7 @@ def record(request, t):
         Activity.objects.create(
             session=session,
             recording=recording,
-            type=ativity_type,
+            type=activity_type,
             time=timezone.now()
         )
 
@@ -87,7 +87,7 @@ def record(request, t):
         if t == 0 and t == current_period:
             test_set = list(Audio.objects.all().filter(type = "test_nat"))
             shuffle(test_set)
-            return render(request, 'record/record.html', {'test_set': test_set, 'MEDIA_URL': settings.MEDIA_URL})
+            return render(request, 'record/record.html', {'test_set': test_set, 'MEDIA_URL': settings.MEDIA_URL, 'current_t': t})
         elif t == 2 and t == current_period:
             return HttpResponse("Post-training")
         elif t == 3 and t == current_period:

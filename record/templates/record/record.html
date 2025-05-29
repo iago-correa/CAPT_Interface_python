@@ -25,9 +25,19 @@
         let mediaRecorder;
         let audioChunks = [];
         let currentAudioId = null;
-        let activity_type = 'test_pre_record'; // This may need to be dynamic for other blocks
         let activeButton = null; // To keep track of the button that initiated the recording
         let warmupAudioUrl = null; // To store the URL for the warmup audio blob
+        
+        const currentT = {{ current_t }};
+        let activity_type;
+
+        if (currentT === 0) {
+            activity_type = 'test_pre_record';
+        } else if (currentT === 2) {
+            activity_type = 'test_post_record';
+        } else if (currentT === 3) {
+            activity_type = 'test_delay_record';
+        }
 
         function disableAllButtons(except) {
             document.querySelectorAll('button').forEach(btn => {
@@ -101,7 +111,7 @@
 
                                 console.log(`Sending audio for ID: ${currentAudioId} to server...`);
                                 try {
-                                    const response = await fetch('/record/', {
+                                    const response = await fetch(`/record/${currentT}/`, {
                                         method: 'POST',
                                         body: formData,
                                         headers: {
