@@ -15,33 +15,7 @@ from login.models import Session
 from login.forms import LogInStudent
 from practice.models import Audio, Activity
 from .models import Recording
-
-def checkPeriod():
-    
-    pre_start_date = timezone.make_aware(datetime.datetime(2025, 5, 27, 0, 0, 0))
-    pre_end_date = timezone.make_aware(datetime.datetime(2025, 5, 29, 23, 59, 0))
-
-    training_start_date = timezone.make_aware(datetime.datetime(2025, 5, 30, 0, 0, 0))
-    training_end_date = timezone.make_aware(datetime.datetime(2025, 5, 31, 0, 0, 0))
-
-    post_start_date = timezone.make_aware(datetime.datetime(2025, 6, 1, 10, 0, 0))
-    post_end_date = timezone.make_aware(datetime.datetime(2025, 6, 2, 18, 0, 0))
-    
-    delay_start_date = timezone.make_aware(datetime.datetime(2025, 6, 3, 10, 0, 0))
-    delay_end_date = timezone.make_aware(datetime.datetime(2025, 6, 4, 23, 0, 0)) 
-
-    current_time = timezone.now()
-
-    if pre_start_date <= current_time <= pre_end_date:
-        return 0
-    elif training_start_date <= current_time <= training_end_date:
-        return 1
-    elif post_start_date <= current_time <= post_end_date:
-        return 2
-    elif delay_start_date <= current_time <= delay_end_date:
-        return 3
-    else:
-        return -1
+from login.utils import get_current_period
 
 @csrf_exempt
 def record(request, t):
@@ -63,6 +37,7 @@ def record(request, t):
 
     activity_type_map = {
         0: 'test_pre_record',
+        1: 'train_record',
         2: 'test_post_record',
         3: 'test_delay_record',
     }
@@ -80,24 +55,23 @@ def record(request, t):
         
         if activity_type_from_post != current_activity_type:
             return JsonResponse({'status': 'error', 'message': 'Activity type mismatch.'}, status=400)
-
+        
         try:
             reference_audio = Audio.objects.get(id=reference_audio_id)
         except Audio.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Reference audio not found.'}, status=404)
 
-        # Check if this audio has already been recorded by this student for this activity type
-        already_recorded_by_student = Recording.objects.filter(
-            activities__session__student=student,
-            activities__type=current_activity_type,
-            original_audio=reference_audio
-        ).exists()
-
-        if already_recorded_by_student:
-            return JsonResponse({
-                'status': 'error',
-                'message': 'This audio has already been recorded by you for this test type.'
-            }, status=409) 
+        if current_activity_type != 'train_record':
+            already_recorded_by_student = Recording.objects.filter(
+                activities__session__student=student,
+                activities__type=current_activity_type,
+                original_audio=reference_audio
+            ).exists()
+            if already_recorded_by_student:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'This audio has already been recorded by you for this test type.'
+                }, status=409)
 
         uploaded_audio_file = request.FILES.get('audio')
 
@@ -138,7 +112,7 @@ def record(request, t):
             }, status=500)
     
     else: # GET request
-        page_current_period_check = checkPeriod()
+        page_current_period_check = get_current_period()
 
         if t != page_current_period_check:
             # If 't' from URL doesn't match the actual current period for recording sessions
@@ -150,20 +124,21 @@ def record(request, t):
         all_required_audios = list(Audio.objects.filter(type=target_audio_set_type))
         total_required_count = len(all_required_audios)
 
-        if total_required_count > 0:
-            num_recorded_by_student = 0
-            for audio_item_check in all_required_audios:
-                if Recording.objects.filter(
-                    activities__session__student=student,
-                    activities__type=current_activity_type,
-                    original_audio=audio_item_check
-                ).exists():
-                    num_recorded_by_student += 1
-            
-            if num_recorded_by_student >= total_required_count:
-                completion_message = "この録音セッションは既に完了しています。"
-                query_params = urlencode({'message': completion_message})
-                return redirect(f"{reverse('login:logout')}?{query_params}")
+        if current_activity_type != 'train_record':
+            if total_required_count > 0:
+                num_recorded_by_student = 0
+                for audio_item_check in all_required_audios:
+                    if Recording.objects.filter(
+                        activities__session__student=student,
+                        activities__type=current_activity_type,
+                        original_audio=audio_item_check
+                    ).exists():
+                        num_recorded_by_student += 1
+                
+                if num_recorded_by_student >= total_required_count:
+                    completion_message = "この録音セッションは既に完了しています。"
+                    query_params = urlencode({'message': completion_message})
+                    return redirect(f"{reverse('login:logout')}?{query_params}")
 
         raw_test_set = all_required_audios 
         shuffle(raw_test_set)

@@ -1,16 +1,43 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from django.urls import reverse
 from django.http import HttpResponse
 from django.conf import settings
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
+from urllib.parse import urlencode
 from login.forms import LogInStudent
 from login.models import Student, Session
+from login.utils import get_current_period
 from .models import Activity, Audio
 from record.models import Recording
 import json
 
 def practice(request):
+
+    session_id = request.session.get('session_id')
+    if not session_id:
+        error_message = 'サインインしてください。'
+        query_params = urlencode({'error': error_message})
+        return redirect(f"{reverse('login:login')}?{query_params}")
+    
+    try:
+        session = Session.objects.get(id=session_id)
+        student = session.student
+    except Session.DoesNotExist:
+        # Handle rare case where session_id is invalid
+        request.session.flush() # Clear invalid session
+        error_message = '無効なセッションです。再度サインインしてください。'
+        query_params = urlencode({'error': error_message})
+        return redirect(f"{reverse('login:login')}?{query_params}")
+    
+    page_current_period_check = get_current_period()
+
+    if page_current_period_check != 1:
+
+        message = '現在は練習期間外のため、アクセスできません。練習期間中に再度アクセスしてください。'
+        query_params = urlencode({'error': message})
+        return redirect(f"{reverse('login:logout')}?{query_params}")
 
     if request.session.get('student_id'):
         student = Student.objects.get(student_id = request.session['student_id'])

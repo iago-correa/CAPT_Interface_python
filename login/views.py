@@ -1,36 +1,10 @@
 from django.shortcuts import render, redirect, reverse
 from django.http import HttpResponse
 from django.utils import timezone
+from .utils import get_current_period
 from .models import Student, Session
 from .forms import LogInStudent
 import datetime
-
-def checkPeriod():
-
-    pre_start_date = timezone.make_aware(datetime.datetime(2025, 5, 27, 00, 0, 0))
-    pre_end_date = timezone.make_aware(datetime.datetime(2025, 5, 29, 23, 59, 0))
-
-    training_start_date = timezone.make_aware(datetime.datetime(2025, 5, 30, 00, 0, 0))
-    training_end_date = timezone.make_aware(datetime.datetime(2025, 5, 31, 00, 0, 0))
-    
-    post_start_date = timezone.make_aware(datetime.datetime(2025, 6, 1, 10, 0, 0))
-    post_end_date = timezone.make_aware(datetime.datetime(2025, 6, 2, 18, 0, 0))
-    
-    delay_start_date = timezone.make_aware(datetime.datetime(2025, 6, 3, 10, 0, 0))
-    delay_end_date = timezone.make_aware(datetime.datetime(2025, 5, 6, 4, 0, 0))
-
-    current_time = timezone.now()
-
-    if pre_start_date <= current_time <= pre_end_date:
-        return 0
-    elif training_start_date <= current_time <= training_end_date:
-        return 1
-    elif post_start_date <= current_time <= post_end_date:
-        return 2
-    elif delay_start_date <= current_time <= delay_end_date:
-        return 3
-    else:
-        return -1
     
 def try_log_in(request, student_id):
 
@@ -50,7 +24,7 @@ def try_log_in(request, student_id):
 def login(request):
     if request.method == "POST":
 
-        period = checkPeriod()
+        period = get_current_period()
 
         if period == 1:
             student_id = request.POST.get('student_id')
@@ -68,7 +42,7 @@ def login(request):
     else:
         if request.session.get('student_id'):
             
-            period = checkPeriod()
+            period = get_current_period()
 
             if period == 1:
                 return redirect('practice:practice')

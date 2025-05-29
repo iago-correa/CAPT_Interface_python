@@ -133,3 +133,17 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Session duration
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_AGE = 10800
+
+# Experiment Period Dates (Year, Month, Day, Hour, Minute, Second)
+import datetime
+
+PERIOD_DATES = {
+    'PRE_START':      (2025, 5, 27, 0, 0, 0),
+    'PRE_END':        (2025, 5, 29, 23, 59, 0), # From record/views.py
+    'TRAINING_START': (2025, 5, 30, 0, 0, 0),
+    'TRAINING_END':   (2025, 5, 31, 0, 0, 0), # From record/views.py
+    'POST_START':     (2025, 6, 1, 10, 0, 0),
+    'POST_END':       (2025, 6, 2, 18, 0, 0),
+    'DELAY_START':    (2025, 6, 3, 10, 0, 0),
+    'DELAY_END':      (2025, 6, 4, 23, 0, 0), # Using the corrected end date
+}
