@@ -8,7 +8,7 @@ import datetime
 def checkPeriod():
 
     pre_start_date = timezone.make_aware(datetime.datetime(2025, 5, 27, 00, 0, 0))
-    pre_end_date = timezone.make_aware(datetime.datetime(2025, 5, 29, 23, 0, 0))
+    pre_end_date = timezone.make_aware(datetime.datetime(2025, 5, 29, 23, 59, 0))
 
     training_start_date = timezone.make_aware(datetime.datetime(2025, 5, 30, 00, 0, 0))
     training_end_date = timezone.make_aware(datetime.datetime(2025, 5, 31, 00, 0, 0))

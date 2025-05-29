@@ -3,137 +3,219 @@
 {% block content %}
     <h1>Recording Session</h1>
 
+    <button id="completeSessionBtn" class="btn btn-success mb-3" disabled>Complete Session</button>
+    <hr>
+
     <div class="audio-block" data-audio-id="rec_warmup">
         <h3>Recording warm-up</h3>
         <p>I am learning English today.</p>
-        <button class="recordBtn" data-state="idle">Start Recording</button>
-        <audio id="warmup_recording"> Your browser does not support the audio element.</audio>
-        <button id="playWarmupBtn" onclick="document.getElementById('warmup_recording').play()" disabled>Play recording</button>
+        <button class="recordBtn btn btn-primary" data-state="idle">Start Recording</button>
+        <audio id="warmup_recording" class="mt-2"> Your browser does not support the audio element.</audio>
+        <button id="playWarmupBtn" class="btn btn-secondary mt-2" disabled>Play recording</button>
         <hr>
     </div>
 
-    <h3>Recording session</h3>
-    {% for audio in test_set %}
-        <div class="audio-block" data-audio-id="{{ audio.id }}">
-            <p>{{ audio.transcript }}</p>
-            <button class="recordBtn" data-state="idle">Start Recording</button>
-            <hr>
+    <h3>Recording Tasks</h3>
+    {% for item in test_set %}
+        <div class="audio-block mb-3 p-3 border rounded" data-audio-id="{{ item.audio.id }}" data-recorded-initially="{{ item.is_recorded|yesno:'true,false' }}">
+            <p>
+                <input type="checkbox" class="is-recorded-indicator" style="margin-right: 5px;" {% if item.is_recorded %}checked{% endif %} disabled />
+                <strong>Task {{ forloop.counter }}:</strong> {{ item.audio.transcript }}
+            </p>
+            <button class="recordBtn btn {% if item.is_recorded %}btn-secondary{% else %}btn-danger{% endif %}" data-state="idle" {% if item.is_recorded %}disabled{% endif %}>
+                {% if item.is_recorded %}Recorded{% else %}Start Recording{% endif %}
+            </button>
         </div>
     {% endfor %}
+    {% if not test_set %}
+        <p>No recording tasks available for this session.</p>
+    {% endif %}
 
     <script>
         let mediaRecorder;
         let audioChunks = [];
-        let currentAudioId = null;
-        let activeButton = null; // To keep track of the button that initiated the recording
-        let warmupAudioUrl = null; // To store the URL for the warmup audio blob
-        
+        let currentAudioIdForRecording = null;
+        let activeButton = null;
+        let warmupAudioUrl = null;
+
         const currentT = {{ current_t }};
-        let activity_type;
-
+        let clientActivityType;
         if (currentT === 0) {
-            activity_type = 'test_pre_record';
+            clientActivityType = 'test_pre_record';
         } else if (currentT === 2) {
-            activity_type = 'test_post_record';
+            clientActivityType = 'test_post_record';
         } else if (currentT === 3) {
-            activity_type = 'test_delay_record';
+            clientActivityType = 'test_delay_record';
+        } else {
+            clientActivityType = 'unknown_test_type';
         }
 
-        function disableAllButtons(except) {
-            document.querySelectorAll('button').forEach(btn => {
-                if (btn !== except) btn.disabled = true;
+        let audioCompletionStatus = {};
+        const audioBlocksToTrack = document.querySelectorAll('.audio-block[data-audio-id]:not([data-audio-id="rec_warmup"])');
+        const totalAudiosToRecord = audioBlocksToTrack.length;
+        const csrfToken = '{{ csrf_token_value }}';
+
+        function updateCompleteSessionButtonState() {
+            const completeBtn = document.getElementById('completeSessionBtn');
+            if (!completeBtn) return;
+            if (totalAudiosToRecord === 0 && {% if not test_set %}true{% else %}false{% endif %}) {
+                 completeBtn.disabled = true;
+                 return;
+            }
+            const recordedCount = Object.values(audioCompletionStatus).filter(status => status).length;
+            completeBtn.disabled = (recordedCount < totalAudiosToRecord);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            audioBlocksToTrack.forEach(audioBlock => {
+                const audioId = audioBlock.dataset.audioId;
+                const isRecordedInitially = audioBlock.dataset.recordedInitially === 'true';
+                audioCompletionStatus[audioId] = isRecordedInitially;
             });
+            updateCompleteSessionButtonState();
+
+            document.getElementById('playWarmupBtn').onclick = () => {
+                const warmupAudioPlayer = document.getElementById('warmup_recording');
+                if (warmupAudioPlayer.src) {
+                    warmupAudioPlayer.play();
+                }
+            };
+
+            const completeBtn = document.getElementById('completeSessionBtn');
+            if (completeBtn) {
+                completeBtn.onclick = () => {
+                    window.location.href = "{% url 'login:logout' %}?message=" + encodeURIComponent("セッション完了しました。ご協力ありがとうございました。");
+                };
+            }
+        });
+
+        function setButtonsDisabledState(shouldBeDisabled, exceptThisButton = null) {
+            document.querySelectorAll('button.recordBtn, button#playWarmupBtn').forEach(btn => {
+                if (btn === exceptThisButton) return;
+                btn.disabled = shouldBeDisabled;
+            });
+            if (!shouldBeDisabled) { // Re-evaluate specific disabled states if enabling all
+                enableAppropriateUIButtons();
+            }
+        }
+        
+        function enableAppropriateUIButtons() {
+            const warmupRecordBtn = document.querySelector('.audio-block[data-audio-id="rec_warmup"] .recordBtn');
+            if (warmupRecordBtn && warmupRecordBtn.getAttribute('data-state') === 'idle') {
+                warmupRecordBtn.disabled = false;
+            }
+        
+            document.getElementById('playWarmupBtn').disabled = !warmupAudioUrl;
+        
+            audioBlocksToTrack.forEach(audioBlock => {
+                const audioId = audioBlock.dataset.audioId;
+                const recordBtn = audioBlock.querySelector('.recordBtn');
+                if (recordBtn && recordBtn.getAttribute('data-state') === 'idle') {
+                    recordBtn.disabled = audioCompletionStatus[audioId];
+                }
+            });
+            updateCompleteSessionButtonState();
         }
 
-        function enableAllButtons() {
-            document.querySelectorAll('button').forEach(btn => btn.disabled = false);
-        }
 
         document.querySelectorAll('.recordBtn').forEach(recordBtn => {
-            const audioBlock = recordBtn.closest('.audio-block');
-            const audioIdFromBlock = audioBlock.dataset.audioId; 
-
             recordBtn.onclick = async () => {
-                const state = recordBtn.getAttribute('data-state');
+                activeButton = recordBtn; // Store the button that was clicked
+                currentAudioIdForRecording = activeButton.closest('.audio-block').dataset.audioId;
+                const state = activeButton.getAttribute('data-state');
 
                 if (state === 'idle') {
-                    // Start recording
                     try {
                         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                        mediaRecorder = new MediaRecorder(stream);
-                        audioChunks = [];
-                        currentAudioId = audioIdFromBlock; // Use the ID from the current block
-                        activeButton = recordBtn; // Set the currently active button
+                        let recorderMimeType = 'audio/webm;codecs=opus'; // A common default
+                        if (MediaRecorder.isTypeSupported('audio/wav')) {
+                             recorderMimeType = 'audio/wav';
+                        } else if (!MediaRecorder.isTypeSupported(recorderMimeType) && MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+                            recorderMimeType = 'audio/ogg;codecs=opus';
+                        } else if (!MediaRecorder.isTypeSupported(recorderMimeType)) {
+                            recorderMimeType = ''; // Let browser pick its absolute default
+                        }
+                        
+                        mediaRecorder = recorderMimeType ? new MediaRecorder(stream, { mimeType: recorderMimeType }) : new MediaRecorder(stream);
+                        console.log("Using MediaRecorder mimeType:", mediaRecorder.mimeType);
 
-                        // If it's a new warm-up recording, revoke the previous blob URL if it exists
-                        if (currentAudioId === 'rec_warmup' && warmupAudioUrl) {
-                            URL.revokeObjectURL(warmupAudioUrl);
+                        audioChunks = [];
+
+                        if (currentAudioIdForRecording === 'rec_warmup') {
+                            if (warmupAudioUrl) URL.revokeObjectURL(warmupAudioUrl);
                             warmupAudioUrl = null;
-                            const warmupPlayer = document.getElementById('warmup_recording');
-                            warmupPlayer.src = ''; // Clear previous src
-                            document.getElementById('playWarmupBtn').disabled = true; // Disable play button
-                        } else if (currentAudioId === 'rec_warmup') { 
-                            // This handles the very first warm-up recording click or if warmupAudioUrl was already null
+                            document.getElementById('warmup_recording').src = '';
                             document.getElementById('playWarmupBtn').disabled = true;
-                            const warmupPlayer = document.getElementById('warmup_recording');
-                            warmupPlayer.src = ''; // Ensure src is clear
                         }
 
-                        disableAllButtons(recordBtn);
-                        recordBtn.textContent = 'Stop Recording';
-                        recordBtn.setAttribute('data-state', 'recording');
+                        setButtonsDisabledState(true, activeButton);
+                        activeButton.textContent = 'Stop Recording';
+                        activeButton.setAttribute('data-state', 'recording');
+                        activeButton.disabled = false; // Ensure the stop button itself is active
 
-                        mediaRecorder.ondataavailable = e => {
-                            audioChunks.push(e.data);
-                        };
+                        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
 
                         mediaRecorder.onstop = async () => {
-                            const blob = new Blob(audioChunks, { type: 'audio/wav' });
+                            const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'application/octet-stream' });
+                            audioChunks = [];
 
-                            if (currentAudioId === 'rec_warmup') {
-                                // Handle warm-up audio: make it playable locally
+                            if (currentAudioIdForRecording === 'rec_warmup') {
                                 warmupAudioUrl = URL.createObjectURL(blob);
-                                const warmupAudioPlayer = document.getElementById('warmup_recording');
-                                warmupAudioPlayer.src = warmupAudioUrl;
-                                warmupAudioPlayer.pause(); // Explicitly pause
-                                warmupAudioPlayer.currentTime = 0; // Rewind to the beginning
-                                document.getElementById('playWarmupBtn').disabled = false; // Enable the play button
-                                
+                                document.getElementById('warmup_recording').src = warmupAudioUrl;
+                                document.getElementById('playWarmupBtn').disabled = false; // Enable play
                                 console.log("Warm-up audio recorded. Ready for client-side playback.");
-                                // No fetch request to the server for warm-up
-
                             } else {
-                                // Handle other recordings: send to server
                                 const formData = new FormData();
-                                formData.append('audio', blob, 'recorded.wav');
-                                formData.append('reference_audio', currentAudioId);
-                                formData.append('activity_type', activity_type);
+                                let fileExtension = (mediaRecorder.mimeType.split(';')[0].split('/')[1]) || 'bin';
+                                formData.append('audio', blob, `${clientActivityType}_${currentAudioIdForRecording}.${fileExtension}`);
+                                formData.append('reference_audio', currentAudioIdForRecording);
+                                formData.append('activity_type', clientActivityType);
 
-                                console.log(`Sending audio for ID: ${currentAudioId} to server...`);
                                 try {
                                     const response = await fetch(`/record/${currentT}/`, {
                                         method: 'POST',
                                         body: formData,
-                                        headers: {
-                                            'X-CSRFToken': '{{ csrf_token }}' 
-                                        }
+                                        headers: { 'X-CSRFToken': csrfToken }
                                     });
+                                    const data = await response.json();
+
+                                    if (response.ok && data.status === 'success') {
+                                        console.log(`Successfully recorded audio ID: ${currentAudioIdForRecording}`);
+                                        audioCompletionStatus[currentAudioIdForRecording] = true;
+                                        const recordedBlock = document.querySelector(`.audio-block[data-audio-id="${currentAudioIdForRecording}"]`);
+                                        if (recordedBlock) {
+                                            const btn = recordedBlock.querySelector('.recordBtn');
+                                            if (btn) {
+                                                btn.textContent = 'Recorded';
+                                                btn.disabled = true;
+                                                btn.classList.remove('btn-danger');
+                                                btn.classList.add('btn-secondary');
+                                            }
+                                            const indicator = recordedBlock.querySelector('.is-recorded-indicator');
+                                            if (indicator) indicator.checked = true;
+                                        }
+                                    } else {
+                                        console.error(`Server error for audio ID ${currentAudioIdForRecording}: ${data.message || response.statusText} (Status: ${response.status})`);
+                                        alert(`Error saving recording for ${currentAudioIdForRecording}: ${data.message || response.statusText}`);
+                                    }
                                 } catch (error) {
-                                    console.error('Error during fetch to /record/:', error);
+                                    console.error(`Fetch error for /record/ on audio ID ${currentAudioIdForRecording}:`, error);
+                                    alert(`Network error or issue processing recording for ${currentAudioIdForRecording}: ${error}. Please try again.`);
                                 }
                             }
-
-                            // Reset UI for the button that was active
-                            if (activeButton) {
-                                activeButton.textContent = 'Start Recording';
+                            
+                            if(activeButton){
+                                activeButton.textContent = (currentAudioIdForRecording !== 'rec_warmup' && audioCompletionStatus[currentAudioIdForRecording]) ? 'Recorded' : 'Start Recording';
                                 activeButton.setAttribute('data-state', 'idle');
+                                if (currentAudioIdForRecording !== 'rec_warmup' && audioCompletionStatus[currentAudioIdForRecording]) {
+                                     activeButton.disabled = true;
+                                } else if (currentAudioIdForRecording === 'rec_warmup'){
+                                    activeButton.disabled = false; // Warmup record button can be re-enabled
+                                }
                             }
-                            enableAllButtons();
-                            audioChunks = []; 
-                            mediaRecorder = null; 
+                            setButtonsDisabledState(false); // Re-enable appropriate buttons
                             activeButton = null;
                         };
-
                         mediaRecorder.start();
                     } catch (err) {
                         console.error("Error starting recording:", err);
@@ -141,17 +223,31 @@
                            activeButton.textContent = 'Start Recording';
                            activeButton.setAttribute('data-state', 'idle');
                         }
-                        enableAllButtons();
+                        setButtonsDisabledState(false);
                         alert("Could not start recording. Please check microphone permissions.");
+                        activeButton = null;
                     }
-                } else if (state === 'recording') {
-                    // Stop recording
-                    if (mediaRecorder) {
-                        mediaRecorder.stop(); // This will trigger the 'onstop' event handler
+                } else if (state === 'recording') { // Clicked "Stop Recording"
+                    if (mediaRecorder && mediaRecorder.state === "recording") {
+                        activeButton.textContent = 'Stopping...'; // Immediate feedback
+                        activeButton.disabled = true; // Prevent multi-clicks on stop
+                        mediaRecorder.stop();
+                    } else if (mediaRecorder && mediaRecorder.state === "inactive") {
+                        console.warn("Stop clicked but mediaRecorder was already inactive.");
+                         // This means onstop might have already run or is about to run.
+                         // Let onstop handle final UI reset.
+                    } else {
+                        console.warn("Stop called but mediaRecorder not in recording state or null.", mediaRecorder ? mediaRecorder.state : 'null');
+                        if (activeButton) { // Fallback UI reset if something went wrong
+                            activeButton.textContent = 'Start Recording';
+                            activeButton.setAttribute('data-state', 'idle');
+                            activeButton.disabled = (currentAudioIdForRecording !== 'rec_warmup' && audioCompletionStatus[currentAudioIdForRecording]);
+                        }
+                        setButtonsDisabledState(false);
+                        activeButton = null;
                     }
                 }
             };
         });
-    </script>  
-
+    </script>
 {% endblock %}
