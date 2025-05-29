@@ -138,12 +138,24 @@ SESSION_COOKIE_AGE = 10800
 import datetime
 
 PERIOD_DATES = {
-    'PRE_START':      (2025, 5, 27, 0, 0, 0),
-    'PRE_END':        (2025, 5, 29, 23, 59, 0), # From record/views.py
-    'TRAINING_START': (2025, 5, 30, 0, 0, 0),
-    'TRAINING_END':   (2025, 5, 31, 0, 0, 0), # From record/views.py
-    'POST_START':     (2025, 6, 1, 10, 0, 0),
-    'POST_END':       (2025, 6, 2, 18, 0, 0),
-    'DELAY_START':    (2025, 6, 3, 10, 0, 0),
-    'DELAY_END':      (2025, 6, 4, 23, 0, 0), # Using the corrected end date
+    'PRE_START':      (2025, 5, 20, 0, 0, 0),
+    'PRE_END':        (2025, 5, 21, 23, 59, 0),
+    'TRAINING_START': (2025, 5, 22, 0, 0, 0),
+    'TRAINING_END':   (2025, 5, 23, 0, 0, 0), 
+    'POST_START':     (2025, 5, 24, 10, 0, 0),
+    'POST_END':       (2025, 5, 25, 18, 0, 0),
+    'DELAY_START':    (2025, 5, 30, 0, 0, 0),
+    'DELAY_END':      (2025, 6, 1, 23, 0, 0), 
 }
+
+# # Dates for the experiment
+# PERIOD_DATES = {
+#     'PRE_START':      (2025, 6, 5, 0, 0, 0),
+#     'PRE_END':        (2025, 6, 9, 10, 0, 0),
+#     'TRAINING_START': (2025, 6, 12, 0, 0, 0),
+#     'TRAINING_END':   (2025, 6, 18, 23, 59, 59), 
+#     'POST_START':     (2025, 6, 19, 0, 0, 0),
+#     'POST_END':       (2025, 6, 25, 23, 59, 59),
+#     'DELAY_START':    (2025, 7, 17, 0, 0, 0),
+#     'DELAY_END':      (2025, 7, 24, 0, 0, 0), 
+# }
