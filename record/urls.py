@@ -4,5 +4,5 @@ from . import views
 app_name = 'record'
 
 urlpatterns = [
-    path('', views.record, name='record'),
+    path('<int:t>', views.record, name='record'),
 ]
