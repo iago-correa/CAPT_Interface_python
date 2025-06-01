@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+# db.sqlite3
+# db.sqlite3-journal 
+# /media/
+.vscode/
+.DS_Store
+Thumbs.db
+*.log
+logs/
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/

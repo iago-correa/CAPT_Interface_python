@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from decouple import config, Csv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,12 +21,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-gw296e%t!a(b!0syd!7@op#1w=r1l_r_$s(g^5ajb4vzt$uhj9'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
+SECRET_KEY = config('SECRET_KEY')
+DEBUG = config('DEBUG', default=False, cast=bool)
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())
 
 
 # Application definition
@@ -144,8 +142,8 @@ import datetime
 PERIOD_DATES = {
     'PRE_START':      (2025, 5, 20, 0, 0, 0),
     'PRE_END':        (2025, 5, 21, 0, 0, 0),
-    'TRAINING_START': (2025, 5, 30, 0, 0, 0),
-    'TRAINING_END':   (2025, 5, 31, 0, 0, 0), 
+    'TRAINING_START': (2025, 6, 2, 0, 0, 0),
+    'TRAINING_END':   (2025, 6, 3, 0, 0, 0), 
     'POST_START':     (2025, 5, 20, 0, 0, 0),
     'POST_END':       (2025, 5, 21, 0, 0, 0),
     'DELAY_START':    (2025, 5, 20, 0, 0, 0),

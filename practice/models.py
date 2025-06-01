@@ -10,7 +10,7 @@ class Audio(models.Model):
         ('train_gs', 'Synthesized golden speaker')
     ]
     
-    file = models.FileField(upload_to='audio/')
+    file = models.CharField(max_length=255)
     transcript = models.TextField()
     type = models.CharField(max_length=10, choices=TYPE_CHOICES, blank=False, default='train_gs')
     student = models.ForeignKey( # In case it is a synthesized speech, this indicates the original student
@@ -21,7 +21,7 @@ class Audio(models.Model):
         related_name='audios_for_practice')
     
     def __str__(self):
-        return f"{self.file.url}: {self.transcript}"
+        return f"{self.file}: {self.transcript}"
 
 class Activity(models.Model):
     
