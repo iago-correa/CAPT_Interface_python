@@ -14,3 +14,5 @@ logs/
 htmlcov/
 .pytest_cache/
 .tox/
+test_env
+requirements_all.txt
