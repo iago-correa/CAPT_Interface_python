@@ -1,5 +1,7 @@
 import csv
+import os
 from django.core.management.base import BaseCommand
+from django.conf import settings
 from login.models import Student
 
 class Command(BaseCommand):
@@ -9,7 +11,9 @@ class Command(BaseCommand):
         parser.add_argument('csv_file', type=str)
 
     def handle(self, *args, **kwargs):
-        file_path = kwargs['csv_file']
+        csv_path = kwargs['csv_file']
+        file_path = os.path.join(settings.BASE_DIR, csv_path)
+        self.stdout.write(f"Attempting to open CSV file at: {file_path}")
         with open(file_path, newline='', encoding='utf-8-sig') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
