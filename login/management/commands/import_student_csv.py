@@ -13,7 +13,7 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         csv_path = kwargs['csv_file']
         file_path = os.path.join(settings.BASE_DIR, csv_path)
-        self.stdout.write(f"Attempting to open CSV file at: {file_path}")
+
         with open(file_path, newline='', encoding='utf-8-sig') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:

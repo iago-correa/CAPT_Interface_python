@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from django.core.files.storage import default_storage
+from django.conf import settings
 from practice.models import Audio
 import csv
 import os
@@ -12,7 +12,8 @@ class Command(BaseCommand):
         parser.add_argument('type', type=str)
 
     def handle(self, *args, **kwargs):
-        file_path = kwargs['csv_file']
+        csv_path = kwargs['csv_file']
+        file_path = os.path.join(settings.BASE_DIR, csv_path)
         audio_type = kwargs['type']
         source_path = 'audio'
 
@@ -34,8 +35,6 @@ class Command(BaseCommand):
                         self.stdout.write(self.style.WARNING(f"Skipping row due to empty 'filename': {row}"))
                         continue
 
-                    
-                        
                     audio = Audio()
                     audio.transcript = row['transcript']
                     audio.type = audio_type
