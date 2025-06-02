@@ -21,7 +21,6 @@
                     <input type="checkbox" class="completion-checkbox form-check-input" data-audio-id-chk="{{ audio.id }}" disabled style="margin-right: 10px;" />
                     {{ audio.transcript }}
                 </p>
-                {% load static %}
                 <audio id="audio_player_{{ audio.id }}">
                     <source src="{% static audio.file %}" type="audio/wav">
                     ご利用のブラウザはオーディオ要素をサポートしていません。
