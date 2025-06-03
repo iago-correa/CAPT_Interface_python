@@ -143,10 +143,10 @@ SESSION_COOKIE_AGE = 10800
 
 # Experiment Period Dates (Year, Month, Day, Hour, Minute, Second)
 PERIOD_DATES = {
-    'PRE_START':      (2025, 5, 20, 0, 0, 0),
-    'PRE_END':        (2025, 5, 21, 0, 0, 0),
+    'PRE_START':      (2025, 5, 4, 0, 0, 0),
+    'PRE_END':        (2025, 5, 5, 0, 0, 0),
     'TRAINING_START': (2025, 6, 2, 0, 0, 0),
-    'TRAINING_END':   (2025, 6, 7, 0, 0, 0), 
+    'TRAINING_END':   (2025, 6, 3, 0, 0, 0), 
     'POST_START':     (2025, 5, 20, 0, 0, 0),
     'POST_END':       (2025, 5, 21, 0, 0, 0),
     'DELAY_START':    (2025, 5, 20, 0, 0, 0),
