@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
+from storages.backends.s3boto3 import S3Boto3Storage
 from urllib.parse import urlencode
 from pydub import AudioSegment
 from random import shuffle
@@ -21,6 +21,8 @@ from login.utils import get_current_period
 @csrf_exempt
 def record(request, t):
     session_id = request.session.get('session_id')
+    s3_storage = S3Boto3Storage()
+
     if not session_id:
         error_message = 'サインインしてください。'
         query_params = urlencode({'error': error_message})
@@ -89,24 +91,25 @@ def record(request, t):
 
             recording = Recording(original_audio=reference_audio)
             
-            print(f"--- Debug: Before File Save ---")
-            print(f"Current DEFAULT_FILE_STORAGE: {settings.DEFAULT_FILE_STORAGE}")
-            print(f"Recording model instance created. About to save to 'recorded_audio' field.")
-            print(f"File to save: {wav_content_file.name}, size: {wav_content_file.size}")
-            print(f"Type of 'recording.recorded_audio': {type(recording.recorded_audio)}")
-            print(f"Storage for 'recording.recorded_audio': {recording.recorded_audio.storage}")
+            # print(f"--- Debug: Before File Save ---")
+            # print(f"Current DEFAULT_FILE_STORAGE: {settings.DEFAULT_FILE_STORAGE}")
+            # print(f"Recording model instance created. About to save to 'recorded_audio' field.")
+            # print(f"File to save: {wav_content_file.name}, size: {wav_content_file.size}")
+            # print(f"Type of 'recording.recorded_audio': {type(recording.recorded_audio)}")
+            # print(f"Storage for 'recording.recorded_audio': {recording.recorded_audio.storage}")
 
-            
-            recording.recorded_audio.save(wav_content_file.name, wav_content_file, save=False)
-            recording.recorded_audio.storage = default_storage
-            print(f"Setted default storage': {default_storage}")
-            recording.save()
+            recording_filepath = s3_storage.save(f"media/recording/{wav_filename}", wav_content_file)
+            if(recording_filepath.split('/')[-1] == wav_filename):    
+                recording.recorded_audio.name = f"recording/{wav_filename}"
+                recording.save()
+            else:
+                raise ValueError("Fail in saving recording file.")
 
-            print(f"--- Debug: After File Save ---")
-            print(f"File supposedly saved. Path from model: {recording.recorded_audio.name}")
-            print(f"URL from model: {recording.recorded_audio.url}")
-            print(f"Storage for 'recording.recorded_audio' after save: {recording.recorded_audio.storage}")
-            print(f"Is the storage S3Boto3Storage? {hasattr(recording.recorded_audio.storage, 'bucket_name')}")
+            # print(f"--- Debug: After File Save ---")
+            # print(f"File supposedly saved. Path from model: {recording.recorded_audio.name}")
+            # print(f"URL from model: {recording.recorded_audio.url}")
+            # print(f"Storage for 'recording.recorded_audio' after save: {recording.recorded_audio.storage}")
+            # print(f"Is the storage S3Boto3Storage? {hasattr(recording.recorded_audio.storage, 'bucket_name')}")
 
             Activity.objects.create(
                 session=session,

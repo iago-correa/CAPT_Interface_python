@@ -146,7 +146,7 @@ PERIOD_DATES = {
     'PRE_START':      (2025, 5, 20, 0, 0, 0),
     'PRE_END':        (2025, 5, 21, 0, 0, 0),
     'TRAINING_START': (2025, 6, 2, 0, 0, 0),
-    'TRAINING_END':   (2025, 6, 4, 0, 0, 0), 
+    'TRAINING_END':   (2025, 6, 7, 0, 0, 0), 
     'POST_START':     (2025, 5, 20, 0, 0, 0),
     'POST_END':       (2025, 5, 21, 0, 0, 0),
     'DELAY_START':    (2025, 5, 20, 0, 0, 0),
