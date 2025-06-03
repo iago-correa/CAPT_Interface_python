@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from urllib.parse import urlencode
 from pydub import AudioSegment
 from random import shuffle
@@ -97,6 +98,8 @@ def record(request, t):
 
             
             recording.recorded_audio.save(wav_content_file.name, wav_content_file, save=False)
+            recording.recorded_audio.storage = default_storage
+            print(f"Setted default storage': {default_storage}")
             recording.save()
 
             print(f"--- Debug: After File Save ---")
