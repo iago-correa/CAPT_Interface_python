@@ -6,26 +6,9 @@ from login.models import Student
 from django.contrib.auth.models import User
 
 class Command(BaseCommand):
-    help = 'Create admin and test users: 01010101 and 02020202'
-
-    def add_arguments(self, parser):
-        parser.add_argument('username', type=str)
-        parser.add_argument('password', type=str)
+    help = 'Create test users: 01010101 and 02020202'
 
     def handle(self, *args, **kwargs):
-        username = kwargs['username']
-        password = kwargs['username']
-
-        try:
-            if not User.objects.filter(is_superuser=True).first():
-                user = User.objects.create(
-                    username = username,
-                    is_superuser = True
-                )
-                user.set_password(password)
-                user.save()
-        except Exception as e:
-            self.stderr.write(self.style.ERROR(f"An error occurred on super user creation: {e}"))
 
         try:
             Student.objects.get_or_create(
