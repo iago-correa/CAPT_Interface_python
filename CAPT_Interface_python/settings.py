@@ -142,15 +142,18 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_AGE = 10800
 
 # Experiment Period Dates (Year, Month, Day, Hour, Minute, Second)
+def tuple_of_ints(value):
+        return tuple(int(x) for x in value.split(','))
+
 PERIOD_DATES = {
-    'PRE_START':      (2025, 5, 4, 0, 0, 0),
-    'PRE_END':        (2025, 5, 5, 0, 0, 0),
-    'TRAINING_START': (2025, 6, 2, 0, 0, 0),
-    'TRAINING_END':   (2025, 6, 3, 0, 0, 0), 
-    'POST_START':     (2025, 5, 20, 0, 0, 0),
-    'POST_END':       (2025, 5, 21, 0, 0, 0),
-    'DELAY_START':    (2025, 5, 20, 0, 0, 0),
-    'DELAY_END':      (2025, 5, 21, 0, 0, 0), 
+    'PRE_START':      config('PRE_START', cast=tuple_of_ints),
+    'PRE_END':        config('PRE_END', cast=tuple_of_ints),
+    'TRAINING_START': config('TRAINING_START', cast=tuple_of_ints),
+    'TRAINING_END':   config('TRAINING_END', cast=tuple_of_ints), 
+    'POST_START':     config('POST_START', cast=tuple_of_ints),
+    'POST_END':       config('POST_END', cast=tuple_of_ints),
+    'DELAY_START':    config('PRE_START', cast=tuple_of_ints),
+    'DELAY_END':      config('POST_END', cast=tuple_of_ints), 
 }
 
 # # Dates for the experiment
@@ -164,25 +167,6 @@ PERIOD_DATES = {
 #     'DELAY_START':    (2025, 7, 17, 0, 0, 0),
 #     'DELAY_END':      (2025, 7, 24, 0, 0, 0), 
 # }
-
-# AWS S3 bucket configuration for media files
-# AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID', default=None)
-# AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY', default=None)
-# AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME', default=None)
-# AWS_S3_REGION_NAME = config('AWS_S3_REGION_NAME', default='ap-northeast-1') 
-# AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
-# AWS_S3_FILE_OVERWRITE = False
-# AWS_DEFAULT_ACL = None
-
-# if AWS_ACCESS_KEY_ID: 
-#     print("--DEBUG: Initializing S3 Storage.")
-#     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-#     MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
-# else:
-#     print("--DEBUG: Initializing Local Storage.")
-#     MEDIA_URL = '/media/'
-#     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
 
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 

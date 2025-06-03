@@ -90,13 +90,6 @@ def record(request, t):
             wav_content_file = ContentFile(wav_buffer.read(), name=wav_filename)
 
             recording = Recording(original_audio=reference_audio)
-            
-            # print(f"--- Debug: Before File Save ---")
-            # print(f"Current DEFAULT_FILE_STORAGE: {settings.DEFAULT_FILE_STORAGE}")
-            # print(f"Recording model instance created. About to save to 'recorded_audio' field.")
-            # print(f"File to save: {wav_content_file.name}, size: {wav_content_file.size}")
-            # print(f"Type of 'recording.recorded_audio': {type(recording.recorded_audio)}")
-            # print(f"Storage for 'recording.recorded_audio': {recording.recorded_audio.storage}")
 
             recording_filepath = s3_storage.save(f"media/recording/{student.id}/{wav_filename}", wav_content_file)
             if(recording_filepath.split('/')[-1] == wav_filename):    
@@ -105,12 +98,6 @@ def record(request, t):
                 recording_signed_url = get_signed_url(recording_filepath)
             else:
                 raise ValueError("Fail in saving recording file.")
-
-            # print(f"--- Debug: After File Save ---")
-            # print(f"File supposedly saved. Path from model: {recording.recorded_audio.name}")
-            # print(f"URL from model: {recording.recorded_audio.url}")
-            # print(f"Storage for 'recording.recorded_audio' after save: {recording.recorded_audio.storage}")
-            # print(f"Is the storage S3Boto3Storage? {hasattr(recording.recorded_audio.storage, 'bucket_name')}")
 
             Activity.objects.create(
                 session=session,
