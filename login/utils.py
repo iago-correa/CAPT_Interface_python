@@ -2,7 +2,9 @@
 
 from django.conf import settings
 from django.utils import timezone
+from botocore.exceptions import ClientError
 import datetime
+import boto3
 
 def get_current_period():
     """
@@ -43,3 +45,19 @@ def get_current_period():
         return 3
     else:
         return -1
+
+def get_signed_url(file_key):
+    s3_client = boto3.client('s3', region_name=settings.AWS_S3_REGION_NAME)
+
+    try:
+        s3_client.head_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=file_key)
+    except ClientError as e:
+        if e.response['Error']['Code'] == '404':
+            return None
+        raise
+
+    return s3_client.generate_presigned_url(
+        'get_object',
+        Params={'Bucket': settings.AWS_STORAGE_BUCKET_NAME, 'Key': file_key},
+        ExpiresIn=3600  # seconds
+    )

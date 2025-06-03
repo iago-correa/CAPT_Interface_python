@@ -8,7 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 from urllib.parse import urlencode
 from login.forms import LogInStudent
 from login.models import Student, Session
-from login.utils import get_current_period
+from login.utils import get_current_period, get_signed_url
 from .models import Activity, Audio
 from record.models import Recording
 import json
@@ -55,7 +55,12 @@ def practice(request):
                 activities__session__student=student, 
                 activities__type='train_record',
                 original_audio = audio).order_by('activities__time').last()
-            train_set.append([audio, recording])
+            if recording:
+                file_key = f"{settings.MEDIA_ROOT}{recording.recorded_audio.name}"
+                recording_signed_url = get_signed_url(file_key)
+                train_set.append([audio, recording, recording_signed_url])
+            else:
+                train_set.append([audio, recording, None])
 
         train_set=train_set[:3]
         return render(request, 'practice/practice.html', {'train_set': train_set, 'MEDIA_URL': settings.MEDIA_URL})

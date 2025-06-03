@@ -13,7 +13,7 @@
         <p class="mb-0">お手本の再生、ご自身の録音、録音の再生は、何度でも繰り返し行うことができます。ただし、各課題で最低一回ずつお手本を聞き、ご自身の音声を録音すると、「セッション完了」ボタンが有効になります。全ての課題が完了したら、ページ下部の「セッション完了」ボタンを押してください。</p>
     </div>
 
-    {% for audio, recording in train_set %}
+    {% for audio, recording, recording_signed_url in train_set %}
         {% csrf_token %}
         <div class="audio-block card mb-3" data-audio-id="{{ audio.id }}">
             <div class="card-body">
@@ -27,8 +27,8 @@
                 </audio>
 
                 <audio id="recording_player_{{ audio.id }}">
-                    {% if recording and recording.recorded_audio.url %}
-                        <source src="{{ recording.recorded_audio.url }}" type="audio/wav">
+                    {% if recording and recording_signed_url %}
+                        <source src="{{ recording_signed_url }}" type="audio/wav">
                     {% endif %}
                     ご利用のブラウザはオーディオ要素をサポートしていません。
                 </audio>
@@ -40,7 +40,7 @@
                     <button class="playRecordingBtn btn btn-sm me-2 btn-outline-secondary disabled pe-none" 
                             data-audio-id-playrec="{{ audio.id }}" 
                             {% if recording and recording.id %}data-recording-id="{{ recording.id }}"{% else %}data-recording-id=""{% endif %}
-                            {% if not recording or not recording.recorded_audio.url %}disabled{% endif %}>録音を再生</button>
+                            {% if not recording or not recording_signed_url %}disabled{% endif %}>録音を再生</button>
                 </div>
             </div>
         </div>

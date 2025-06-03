@@ -16,7 +16,7 @@ from login.models import Session
 from login.forms import LogInStudent
 from practice.models import Audio, Activity
 from .models import Recording
-from login.utils import get_current_period
+from login.utils import get_current_period, get_signed_url
 
 @csrf_exempt
 def record(request, t):
@@ -98,10 +98,11 @@ def record(request, t):
             # print(f"Type of 'recording.recorded_audio': {type(recording.recorded_audio)}")
             # print(f"Storage for 'recording.recorded_audio': {recording.recorded_audio.storage}")
 
-            recording_filepath = s3_storage.save(f"media/recording/{wav_filename}", wav_content_file)
+            recording_filepath = s3_storage.save(f"media/recording/{student.id}/{wav_filename}", wav_content_file)
             if(recording_filepath.split('/')[-1] == wav_filename):    
-                recording.recorded_audio.name = f"recording/{wav_filename}"
+                recording.recorded_audio.name = f"recording/{student.id}/{wav_filename}"
                 recording.save()
+                recording_signed_url = get_signed_url(recording_filepath)
             else:
                 raise ValueError("Fail in saving recording file.")
 
@@ -122,7 +123,7 @@ def record(request, t):
                 'status': 'success',
                 'recording': {
                     'id': recording.id,
-                    'url': recording.recorded_audio.url
+                    'url': recording_signed_url
                 }
             })
         except Exception as e:
