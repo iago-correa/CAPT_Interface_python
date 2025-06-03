@@ -1,5 +1,7 @@
+urllib3<2,>=1.26.5
 Django==5.2.1
 psycopg2-binary==2.9.10
 pydub==0.25.1
 python-decouple==3.8
-gunicorn
+boto3
+django-storages
