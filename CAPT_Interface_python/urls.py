@@ -20,6 +20,7 @@ from django.conf.urls.static import static
 from django.urls import path, include
 
 urlpatterns = [
+    path(settings.ADMIN_URL_PATH, admin.site.urls),
     path('', include('login.urls')),
     path('practice/', include('practice.urls')),
     path('record/', include('record.urls')),
@@ -27,6 +28,3 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
-if settings.ADMIN_ENABLED:
-    urlpatterns.append(path('admin/', admin.site.urls))
