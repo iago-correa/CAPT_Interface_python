@@ -139,7 +139,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Session duration
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-SESSION_COOKIE_AGE = 10800
+SESSION_COOKIE_AGE = 60*30
+
+ADMIN_ENABLED = config('ADMIN_ENABLED', default=False, cast=bool)
 
 # Experiment Period Dates (Year, Month, Day, Hour, Minute, Second)
 def tuple_of_ints(value):
