@@ -3,6 +3,8 @@
 from django.conf import settings
 from django.utils import timezone
 from botocore.exceptions import ClientError
+from django.conf import settings
+from zoneinfo import ZoneInfo
 import datetime
 import boto3
 
@@ -32,8 +34,8 @@ def get_current_period():
     except ValueError as e:
         print(f"Error creating datetime objects from settings: {e}") 
         return -2 
-
-    current_time = timezone.now()
+    
+    current_time = datetime.datetime.now(ZoneInfo(settings.TIME_ZONE))
     print(str(current_time))
 
     if pre_start_date <= current_time <= pre_end_date:

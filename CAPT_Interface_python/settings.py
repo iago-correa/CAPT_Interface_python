@@ -153,8 +153,8 @@ PERIOD_DATES = {
     'TRAINING_END':   config('PERIOD_TRAINING_END', cast=tuple_of_ints), 
     'POST_START':     config('PERIOD_POST_START', cast=tuple_of_ints),
     'POST_END':       config('PERIOD_POST_END', cast=tuple_of_ints),
-    'DELAY_START':    config('PERIOD_PRE_START', cast=tuple_of_ints),
-    'DELAY_END':      config('PERIOD_POST_END', cast=tuple_of_ints), 
+    'DELAY_START':    config('PERIOD_DELAY_START', cast=tuple_of_ints),
+    'DELAY_END':      config('PERIOD_DELAY_END', cast=tuple_of_ints), 
 }
 
 # # Dates for the experiment
