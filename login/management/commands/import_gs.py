@@ -23,9 +23,10 @@ class Command(BaseCommand):
         try:
             
             gs_path = 'gs'
+            print(experiment_students)
             for student in experiment_students:
             #glob.glob(f'.{settings.STATIC_URL}{gs_path}/*'):
-
+                print(Student)
                 speaker_id = student.id
                 print(speaker_id)
 
@@ -45,7 +46,7 @@ class Command(BaseCommand):
                             audio = Audio()
                             audio.transcript = row['transcript']
                             audio.type = 'train_gs'
-                            audio.student = Student.objects.get(id = speaker_id)
+                            audio.student = student
                             audio.file = audio_filename
 
                             audio.save()
