@@ -42,8 +42,8 @@ class Command(BaseCommand):
                         
                         audio_filename = os.path.join('gs', str(speaker_id), filename)
                         
-                        self.stdout.write(str(os.path.join({settings.STATIC_URL}, audio_filename)))
-                        if os.path.exists(os.path.join({settings.STATIC_URL}, audio_filename)):
+                        self.stdout.write(str(os.path.join(settings.STATIC_URL, audio_filename)))
+                        if os.path.exists(os.path.join(settings.STATIC_URL, audio_filename)):
                             self.stdout.write(str(speaker_id))
                             audio = Audio()
                             audio.transcript = row['transcript']
