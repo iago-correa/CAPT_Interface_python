@@ -23,12 +23,12 @@ class Command(BaseCommand):
         try:
             
             gs_path = 'gs'
-            print(experiment_students)
+            self.stdout.write(experiment_students)
             for student in experiment_students:
             #glob.glob(f'.{settings.STATIC_URL}{gs_path}/*'):
-                print(Student)
+                self.stdout.write(Student)
                 speaker_id = student.id
-                print(speaker_id)
+                self.stdout.write(speaker_id)
 
                 with open(file_path, newline='', encoding='utf-8-sig') as csvfile:
                     reader = csv.DictReader(csvfile)
