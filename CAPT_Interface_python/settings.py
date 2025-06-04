@@ -146,14 +146,14 @@ def tuple_of_ints(value):
         return tuple(int(x) for x in value.split(','))
 
 PERIOD_DATES = {
-    'PRE_START':      config('PRE_START', cast=tuple_of_ints),
-    'PRE_END':        config('PRE_END', cast=tuple_of_ints),
-    'TRAINING_START': config('TRAINING_START', cast=tuple_of_ints),
-    'TRAINING_END':   config('TRAINING_END', cast=tuple_of_ints), 
-    'POST_START':     config('POST_START', cast=tuple_of_ints),
-    'POST_END':       config('POST_END', cast=tuple_of_ints),
-    'DELAY_START':    config('PRE_START', cast=tuple_of_ints),
-    'DELAY_END':      config('POST_END', cast=tuple_of_ints), 
+    'PRE_START':      config('PERIOD_PRE_START', cast=tuple_of_ints),
+    'PRE_END':        config('PERIOD_PRE_END', cast=tuple_of_ints),
+    'TRAINING_START': config('PERIOD_TRAINING_START', cast=tuple_of_ints),
+    'TRAINING_END':   config('PERIOD_TRAINING_END', cast=tuple_of_ints), 
+    'POST_START':     config('PERIOD_POST_START', cast=tuple_of_ints),
+    'POST_END':       config('PERIOD_POST_END', cast=tuple_of_ints),
+    'DELAY_START':    config('PERIOD_PRE_START', cast=tuple_of_ints),
+    'DELAY_END':      config('PERIOD_POST_END', cast=tuple_of_ints), 
 }
 
 # # Dates for the experiment
