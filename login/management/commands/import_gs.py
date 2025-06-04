@@ -23,10 +23,10 @@ class Command(BaseCommand):
         try:
             
             gs_path = 'gs'
-            self.stdout.write(str(len(experiment_students)))
+        
             for student in experiment_students:
             #glob.glob(f'.{settings.STATIC_URL}{gs_path}/*'):
-                self.stdout.write(Student)
+                
                 speaker_id = student.id
                 self.stdout.write(speaker_id)
 
@@ -43,6 +43,7 @@ class Command(BaseCommand):
                         audio_filename = os.path.join('gs', speaker_id, filename)
                         
                         if os.path.exists(os.path.join({settings.STATIC_URL}, audio_filename)):
+                            self.stdout.write(speaker_id)
                             audio = Audio()
                             audio.transcript = row['transcript']
                             audio.type = 'train_gs'
