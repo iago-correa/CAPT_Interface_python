@@ -34,6 +34,7 @@ def get_current_period():
         return -2 
 
     current_time = timezone.now()
+    print(str(current_time))
 
     if pre_start_date <= current_time <= pre_end_date:
         return 0

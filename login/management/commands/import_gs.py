@@ -34,7 +34,7 @@ class Command(BaseCommand):
                 
                     audios_created_count = 0
                     for row in reader:
-                        filename = row['filename'].replace('.mp3', '.wav')
+                        filename = row['filename']
                         if not filename:
                             self.stdout.write(self.style.WARNING(f"Skipping row due to empty 'filename': {row}"))
                             continue
