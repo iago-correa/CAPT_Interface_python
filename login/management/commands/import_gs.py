@@ -40,8 +40,9 @@ class Command(BaseCommand):
                             self.stdout.write(self.style.WARNING(f"Skipping row due to empty 'filename': {row}"))
                             continue
                         
-                        audio_filename = os.path.join('gs', speaker_id, filename)
+                        audio_filename = os.path.join('gs', str(speaker_id), filename)
                         
+                        self.stdout.write(str(os.path.join({settings.STATIC_URL}, audio_filename)))
                         if os.path.exists(os.path.join({settings.STATIC_URL}, audio_filename)):
                             self.stdout.write(str(speaker_id))
                             audio = Audio()
