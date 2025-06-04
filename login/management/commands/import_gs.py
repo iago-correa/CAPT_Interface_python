@@ -17,14 +17,17 @@ class Command(BaseCommand):
         csv_path = kwargs['csv_file']
         file_path = os.path.join(settings.BASE_DIR, csv_path)
 
+        experiment_students = Student.objects.filter(control_group=False)
         self.stdout.write(f"Importing audios from: {file_path} with type: train_gs")
 
         try:
             
             gs_path = 'gs'
-            for speaker_path in glob.glob(f'.{settings.STATIC_URL}{gs_path}/*'):
+            for student in experiment_students:
+            #glob.glob(f'.{settings.STATIC_URL}{gs_path}/*'):
 
-                speaker_id = speaker_path.split(os.path.sep)[-1]
+                speaker_id = student.id
+                print(speaker_id)
 
                 with open(file_path, newline='', encoding='utf-8-sig') as csvfile:
                     reader = csv.DictReader(csvfile)
@@ -35,15 +38,18 @@ class Command(BaseCommand):
                         if not filename:
                             self.stdout.write(self.style.WARNING(f"Skipping row due to empty 'filename': {row}"))
                             continue
+                        
+                        audio_filename = os.path.join('gs', speaker_id, filename)
+                        
+                        if os.path.exists(os.path.join({settings.STATIC_URL}, audio_filename)):
+                            audio = Audio()
+                            audio.transcript = row['transcript']
+                            audio.type = 'train_gs'
+                            audio.student = Student.objects.get(id = speaker_id)
+                            audio.file = audio_filename
 
-                        audio = Audio()
-                        audio.transcript = row['transcript']
-                        audio.type = 'train_gs'
-                        audio.student = Student.objects.get(id = speaker_id)
-                        audio.file = os.path.join(f'gs\{speaker_id}', filename)
-
-                        audio.save()
-                        audios_created_count += 1
+                            audio.save()
+                            audios_created_count += 1
 
                 self.stdout.write(self.style.SUCCESS(f'{audios_created_count} audio entries imported successfully.')) 
 
