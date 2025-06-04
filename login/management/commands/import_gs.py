@@ -24,14 +24,14 @@ class Command(BaseCommand):
             gs_path = 'gs'
             for speaker_path in glob.glob(f'.{settings.STATIC_URL}{gs_path}/*'):
 
-                speaker_id = speaker_path.split('/')[-1]
+                speaker_id = speaker_path.split(os.path.sep)[-1]
 
                 with open(file_path, newline='', encoding='utf-8-sig') as csvfile:
                     reader = csv.DictReader(csvfile)
                 
                     audios_created_count = 0
                     for row in reader:
-                        filename = row['filename']
+                        filename = row['filename'].replace('.mp3', '.wav')
                         if not filename:
                             self.stdout.write(self.style.WARNING(f"Skipping row due to empty 'filename': {row}"))
                             continue
@@ -40,7 +40,7 @@ class Command(BaseCommand):
                         audio.transcript = row['transcript']
                         audio.type = 'train_gs'
                         audio.student = Student.objects.get(id = speaker_id)
-                        audio.file = os.path.join(f'gs/{speaker_id}', filename)
+                        audio.file = os.path.join(f'gs\{speaker_id}', filename)
 
                         audio.save()
                         audios_created_count += 1
