@@ -28,7 +28,7 @@ class Command(BaseCommand):
             #glob.glob(f'.{settings.STATIC_URL}{gs_path}/*'):
                 
                 speaker_id = student.id
-                self.stdout.write(speaker_id)
+                self.stdout.write(str(speaker_id))
 
                 with open(file_path, newline='', encoding='utf-8-sig') as csvfile:
                     reader = csv.DictReader(csvfile)
@@ -43,7 +43,7 @@ class Command(BaseCommand):
                         audio_filename = os.path.join('gs', speaker_id, filename)
                         
                         if os.path.exists(os.path.join({settings.STATIC_URL}, audio_filename)):
-                            self.stdout.write(speaker_id)
+                            self.stdout.write(str(speaker_id))
                             audio = Audio()
                             audio.transcript = row['transcript']
                             audio.type = 'train_gs'
