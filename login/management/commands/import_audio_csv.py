@@ -20,7 +20,6 @@ class Command(BaseCommand):
         self.stdout.write(f"Importing audios from: {file_path} with type: {audio_type}")
 
         try:
-
             with open(file_path, newline='', encoding='utf-8-sig') as csvfile:
                 reader = csv.DictReader(csvfile)
 
@@ -29,23 +28,32 @@ class Command(BaseCommand):
                     return
 
                 audios_created_count = 0
+                audios_skipped_count = 0
+
                 for row in reader:
                     filename = row['filename']
                     if not filename:
                         self.stdout.write(self.style.WARNING(f"Skipping row due to empty 'filename': {row}"))
                         continue
 
+                    relative_file_path = os.path.join(source_path, filename)
+
+                    # ✅ Check for existing entry
+                    if Audio.objects.filter(file=relative_file_path, type=audio_type).exists():
+                        audios_skipped_count += 1
+                        continue
+
                     audio = Audio()
                     audio.transcript = row['transcript']
                     audio.type = audio_type
-                    audio.file = os.path.join('audio', filename)
+                    audio.file = relative_file_path
                     
                     audio.save()
                     audios_created_count += 1
 
-            self.stdout.write(self.style.SUCCESS(f'{audios_created_count} audio entries imported successfully.')) 
+            self.stdout.write(self.style.SUCCESS(f'{audios_created_count} audio entries imported successfully.'))
+            self.stdout.write(self.style.WARNING(f'{audios_skipped_count} duplicate entries skipped.'))
 
-        
         except FileNotFoundError:
             self.stderr.write(self.style.ERROR(f"CSV file not found: {file_path}"))
         except Exception as e:

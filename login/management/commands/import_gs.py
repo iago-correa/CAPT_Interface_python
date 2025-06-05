@@ -2,8 +2,6 @@ from django.core.management.base import BaseCommand
 from django.conf import settings
 from practice.models import Audio
 from login.models import Student
-from django.conf import settings
-import glob
 import csv
 import os
 
@@ -21,37 +19,48 @@ class Command(BaseCommand):
         self.stdout.write(f"Importing audios from: {file_path} with type: train_gs")
 
         try:
-            
             gs_path = 'gs'
-        
+
             for student in experiment_students:
-            #glob.glob(f'.{settings.STATIC_URL}{gs_path}/*'):
-                
                 speaker_id = student.id
 
                 with open(file_path, newline='', encoding='utf-8-sig') as csvfile:
                     reader = csv.DictReader(csvfile)
-                
+
                     audios_created_count = 0
+                    audios_skipped_count = 0
+
                     for row in reader:
                         filename = row['filename']
                         if not filename:
                             self.stdout.write(self.style.WARNING(f"Skipping row due to empty 'filename': {row}"))
                             continue
-                        
-                        audio_filename = os.path.join('gs', str(speaker_id), filename)
-                        
-                        if os.path.exists(os.path.join(settings.STATIC_ROOT, audio_filename)):
-                            audio = Audio()
-                            audio.transcript = row['transcript']
-                            audio.type = 'train_gs'
-                            audio.student = student
-                            audio.file = audio_filename
 
-                            audio.save()
-                            audios_created_count += 1
+                        audio_filename = os.path.join(gs_path, str(speaker_id), filename)
 
-                self.stdout.write(self.style.SUCCESS(f'{audios_created_count} audio entries imported successfully.')) 
+                        if not os.path.exists(os.path.join(settings.STATIC_ROOT, audio_filename)):
+                            continue
+
+                        if Audio.objects.filter(file=audio_filename, type='train_gs', student=student).exists():
+                            audios_skipped_count += 1
+                            continue
+
+                        audio = Audio(
+                            transcript=row['transcript'],
+                            type='train_gs',
+                            student=student,
+                            file=audio_filename
+                        )
+                        audio.save()
+                        audios_created_count += 1
+
+                self.stdout.write(self.style.SUCCESS(
+                    f'{audios_created_count} audio entries imported for student {student.id}.'
+                ))
+                if audios_skipped_count:
+                    self.stdout.write(self.style.WARNING(
+                        f'{audios_skipped_count} duplicates skipped for student {student.id}.'
+                    ))
 
         except FileNotFoundError:
             self.stderr.write(self.style.ERROR(f"CSV file not found: {file_path}"))
