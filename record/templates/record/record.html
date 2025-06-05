@@ -129,6 +129,7 @@ document.querySelectorAll('.recordBtn').forEach(btn => {
                     document.getElementById('playWarmupBtn').disabled = false;
                     document.getElementById('playWarmupBtn').classList.remove('disabled', 'pe-none');
                     document.getElementById('playWarmupBtn').classList.add('btn-primary');
+                    document.getElementById('playWarmupBtn').style.color = "white";
                     btn.textContent = '録音開始';
                     btn.dataset.state = 'idle';
                     btn.disabled = false;
