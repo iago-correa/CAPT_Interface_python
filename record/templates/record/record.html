@@ -1,12 +1,13 @@
 {% extends 'login/base.html' %}
-
+{% load static %}
 {% block content %}
+
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1>録音セッション</h1> 
+        <h1>録音セッション</h1>
     </div>
 
-    <div class="alert alert-info" role="alert"> 
+    <div class="alert alert-info" role="alert">
         <h4 class="alert-heading">録音の進め方</h4>
         <p>この録音セッションでは、一度録音すると聞き直しや再録音はできません。ページ上部の「マイクテスト」をご利用になり、マイクが正しく機能するか、録音される音声が十分な音量であるかをご確認ください。</p>
         <hr>
@@ -15,12 +16,12 @@
 
     <div class="audio-block card mb-3" data-audio-id="rec_warmup">
         <div class="card-body">
-            <h5 class="card-title">マイクテスト</h5> 
-            <p class="card-text text-muted small mb-2">マイクと録音機能のテストとして、以下の文章を読み上げてください。</p> 
+            <h5 class="card-title">マイクテスト</h5>
+            <p class="card-text text-muted small mb-2">マイクと録音機能のテストとして、以下の文章を読み上げてください。</p>
             <p class="card-text">I am learning English today.</p>
-            <audio id="warmup_recording" class="mt-2">ご利用のブラウザはオーディオ要素をサポートしていません。</audio>
+            <audio id="warmup_recording" class="mt-2"></audio>
             <div class="mt-2">
-                <button class="recordBtn btn btn-primary btn-sm me-2" data-state="idle">録音開始</button>
+                <button class="recordBtn btn btn-primary btn-sm me-2" data-state="idle" data-audio-id="rec_warmup">録音開始</button>
                 <button id="playWarmupBtn" class="btn btn-outline-secondary btn-sm disabled pe-none" disabled>録音を再生</button>
             </div>
         </div>
@@ -28,247 +29,156 @@
 
     <h3 class="mt-4 mb-3">録音課題</h3>
     {% for item in test_set %}
-        <div class="audio-block card mb-3" data-audio-id="{{ item.audio.id }}" data-recorded-initially="{{ item.is_recorded|yesno:'true,false' }}">
-            <div class="card-body">
-                <p class="mb-3">
-                    <input type="checkbox" class="is-recorded-indicator form-check-input" style="margin-right: 10px;" {% if item.is_recorded %}checked{% endif %} disabled />
-                    {{ item.audio.transcript }}
-                </p>
-                <button class="recordBtn btn {% if item.is_recorded %}btn-success disabled pe-none{% else %}btn-danger{% endif %} btn-sm" data-state="idle" {% if item.is_recorded %}disabled{% endif %}>
-                    {% if item.is_recorded %}録音済み{% else %}録音開始{% endif %}
-                </button>
-            </div>
+    <div class="audio-block card mb-3" data-audio-id="{{ item.audio.id }}" data-recorded-initially="{{ item.is_recorded|yesno:'true,false' }}">
+        <div class="card-body">
+            <p class="mb-3">
+                <input type="checkbox" class="is-recorded-indicator form-check-input" style="margin-right: 10px;" {% if item.is_recorded %}checked{% endif %} disabled />
+                {{ item.audio.transcript }}
+            </p>
+            <button class="recordBtn btn {% if item.is_recorded %}btn-success disabled pe-none{% else %}btn-danger{% endif %} btn-sm" data-state="idle" data-audio-id="{{ item.audio.id }}" {% if item.is_recorded %}disabled{% endif %}>
+                {% if item.is_recorded %}録音済み{% else %}録音開始{% endif %}
+            </button>
         </div>
+    </div>
     {% endfor %}
+
     {% if not test_set %}
         <p class="text-muted">このセッションで利用可能な録音課題はありません。</p>
     {% endif %}
 
     <div class="mt-4 mb-5 d-grid">
-      <button id="completeSessionBtn" class="btn btn-lg btn-outline-success disabled pe-none" disabled>セッション完了</button>
+        <button id="completeSessionBtn" class="btn btn-lg btn-outline-success disabled pe-none" disabled>セッション完了</button>
     </div>
 </div>
 
+<script src="{% static 'js/recorder.js' %}"></script>
 <script>
-    let activeMediaRecorder = null; // Holds the currently active MediaRecorder instance
-    let activeAudioChunks = [];   // Holds chunks for the active MediaRecorder
-    let activeButtonEl = null;    // The specific button that triggered the current recording
+let recorder, gumStream, audioContext;
+const csrfToken = '{{ csrf_token_value }}';
+const currentT = {{ current_t }};
+const activityMap = { 0: 'test_pre_record', 2: 'test_post_record', 3: 'test_delay_record' };
+const clientActivityType = activityMap[currentT] || 'unknown';
+const audioCompletionStatus = {};
+let warmupAudioUrl = null;
 
-    let warmupAudioUrl = null;
-
-    const currentT = {{ current_t }};
-    let clientActivityType;
-    if (currentT === 0) clientActivityType = 'test_pre_record';
-    else if (currentT === 2) clientActivityType = 'test_post_record';
-    else if (currentT === 3) clientActivityType = 'test_delay_record';
-    else clientActivityType = 'unknown_test_type';
-
-    let audioCompletionStatus = {};
-    const audioBlocksToTrack = document.querySelectorAll('.audio-block[data-audio-id]:not([data-audio-id="rec_warmup"])');
-    const totalAudiosToRecord = audioBlocksToTrack.length;
-    const csrfToken = '{{ csrf_token_value }}';
-
-    function updateCompleteSessionButtonVisualState() {
-        const completeBtn = document.getElementById('completeSessionBtn');
-        if (!completeBtn) return;
-        if (totalAudiosToRecord === 0 && {% if not test_set %}true{% else %}false{% endif %}) {
-             completeBtn.disabled = true;
-             completeBtn.classList.add('disabled', 'pe-none', 'btn-outline-success');
-             completeBtn.classList.remove('btn-success');
-             return;
-        }
-        const recordedCount = Object.values(audioCompletionStatus).filter(status => status).length;
-        const allDone = recordedCount >= totalAudiosToRecord;
-        completeBtn.disabled = !allDone;
-        if (allDone) {
-            completeBtn.classList.remove('disabled', 'pe-none', 'btn-outline-success');
-            completeBtn.classList.add('btn-success');
-        } else {
-            completeBtn.classList.remove('btn-success');
-            completeBtn.classList.add('disabled', 'pe-none', 'btn-outline-success');
-        }
+// Initialize recorded status
+document.querySelectorAll('.audio-block[data-audio-id]').forEach(block => {
+    const id = block.dataset.audioId;
+    if (id !== 'rec_warmup') {
+        audioCompletionStatus[id] = block.dataset.recordedInitially === 'true';
     }
-    
-    function setPageInteractiveState(isRecording, currentButton = null) {
-        document.querySelectorAll('.recordBtn, #playWarmupBtn, #completeSessionBtn').forEach(btn => {
-            if (btn === currentButton && isRecording) { // The button used to stop
-                btn.disabled = false;
-            } else {
-                btn.disabled = isRecording;
+});
+
+// Update session complete button
+function updateSessionComplete() {
+    const btn = document.getElementById('completeSessionBtn');
+    const allDone = Object.values(audioCompletionStatus).every(v => v);
+    btn.disabled = !allDone;
+    btn.classList.toggle('btn-success', allDone);
+    btn.classList.toggle('btn-outline-success', !allDone);
+    btn.classList.toggle('disabled', !allDone);
+    btn.classList.toggle('pe-none', !allDone);
+    if (allDone) {
+        btn.onclick = () => {
+            window.location.href = "{% url 'login:logout' %}?message=" + encodeURIComponent("録音セッションお疲れ様でした。");
+        };
+    }
+}
+
+// Lock/unlock all record buttons
+function setRecordingState(disabled, exceptBtn = null) {
+    document.querySelectorAll('.recordBtn').forEach(btn => {
+        if (btn !== exceptBtn) btn.disabled = disabled;
+    });
+    document.getElementById('playWarmupBtn').disabled = disabled || !warmupAudioUrl;
+}
+
+// Recording logic
+document.querySelectorAll('.recordBtn').forEach(btn => {
+    btn.onclick = async () => {
+        const block = btn.closest('.audio-block');
+        const audioId = btn.dataset.audioId;
+        const isWarmup = audioId === 'rec_warmup';
+
+        if (btn.dataset.state !== 'recording') {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioContext = new AudioContext();
+                gumStream = stream;
+                const input = audioContext.createMediaStreamSource(stream);
+                recorder = new Recorder(input, { numChannels: 1 });
+                recorder.record();
+                setRecordingState(true, btn);
+                btn.textContent = '録音停止';
+                btn.dataset.state = 'recording';
+            } catch (err) {
+                alert("マイクにアクセスできませんでした。");
+                console.error(err);
             }
-        });
+        } else {
+            recorder.stop();
+            gumStream.getAudioTracks()[0].stop();
+            btn.textContent = '処理中...';
+            btn.disabled = true;
 
-        if (!isRecording) { // After stopping or on initial load
-            document.querySelectorAll('.recordBtn').forEach(btn => {
-                const audioId = btn.closest('.audio-block').dataset.audioId;
-                const isWarmup = audioId === 'rec_warmup';
-                const isTaskRecorded = !isWarmup && audioCompletionStatus[audioId];
-
-                btn.disabled = isWarmup ? false : isTaskRecorded;
-                btn.setAttribute('data-state', 'idle'); // Ensure state is idle
-
-                btn.classList.remove('btn-primary', 'btn-danger', 'btn-success', 'disabled', 'pe-none');
+            recorder.exportWAV(async blob => {
                 if (isWarmup) {
+                    warmupAudioUrl = URL.createObjectURL(blob);
+                    const player = document.getElementById('warmup_recording');
+                    player.src = warmupAudioUrl;
+                    document.getElementById('playWarmupBtn').disabled = false;
+                    document.getElementById('playWarmupBtn').classList.remove('disabled', 'pe-none');
+                    document.getElementById('playWarmupBtn').classList.add('btn-primary');
                     btn.textContent = '録音開始';
-                    btn.classList.add('btn-primary');
-                } else if (isTaskRecorded) {
-                    btn.textContent = '録音済み';
-                    btn.classList.add('btn-success', 'disabled', 'pe-none');
+                    btn.dataset.state = 'idle';
+                    btn.disabled = false;
+                    setRecordingState(false);
                 } else {
-                    btn.textContent = '録音開始';
-                    btn.classList.add('btn-danger');
+                    const formData = new FormData();
+                    formData.append('audio', blob, `${clientActivityType}_${audioId}.wav`);
+                    formData.append('reference_audio', audioId);
+                    formData.append('activity_type', clientActivityType);
+
+                    try {
+                        const res = await fetch(`/record/${currentT}/`, {
+                            method: 'POST',
+                            body: formData,
+                            headers: { 'X-CSRFToken': csrfToken }
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.status === 'success') {
+                            audioCompletionStatus[audioId] = true;
+                            btn.textContent = '録音済み';
+                            btn.classList.remove('btn-danger');
+                            btn.classList.add('btn-success', 'disabled', 'pe-none');
+                            const chk = block.querySelector('.is-recorded-indicator');
+                            if (chk) chk.checked = true;
+                            updateSessionComplete();
+                        } else {
+                            throw new Error(data.message || "録音の保存に失敗しました。");
+                        }
+                    } catch (err) {
+                        alert("録音保存エラー: " + err.message);
+                        btn.textContent = '録音開始';
+                        btn.dataset.state = 'idle';
+                        btn.disabled = false;
+                    } finally {
+                        setRecordingState(false);
+                    }
                 }
             });
-
-            const playWarmupBtn = document.getElementById('playWarmupBtn');
-            playWarmupBtn.disabled = !warmupAudioUrl;
-            playWarmupBtn.classList.toggle('btn-primary', !!warmupAudioUrl);
-            playWarmupBtn.classList.toggle('btn-outline-secondary', !warmupAudioUrl);
-            playWarmupBtn.classList.toggle('disabled', !warmupAudioUrl);
-            playWarmupBtn.classList.toggle('pe-none', !warmupAudioUrl);
-
-            updateCompleteSessionButtonVisualState();
         }
-    }
+    };
+});
 
-    document.addEventListener('DOMContentLoaded', () => {
-        audioBlocksToTrack.forEach(audioBlock => {
-            const audioId = audioBlock.dataset.audioId;
-            audioCompletionStatus[audioId] = audioBlock.dataset.recordedInitially === 'true';
-        });
-        updateCompleteSessionButtonVisualState();
-        document.getElementById('playWarmupBtn').onclick = () => {
-            const player = document.getElementById('warmup_recording');
-            if (player.src && warmupAudioUrl) player.play();
-        };
-        const completeBtn = document.getElementById('completeSessionBtn');
-        if (completeBtn) {
-            completeBtn.onclick = () => {
-                if (!completeBtn.disabled) window.location.href = "{% url 'login:logout' %}?message=" + encodeURIComponent("録音セッションお疲れ様でした。");
-            };
-        }
-        setPageInteractiveState(false); // Initialize button states
-    });
+// Warmup playback
+document.getElementById('playWarmupBtn').onclick = () => {
+    const player = document.getElementById('warmup_recording');
+    if (player.src) player.play();
+};
 
-    document.querySelectorAll('.recordBtn').forEach(recordBtn => {
-        recordBtn.onclick = async () => {
-            const clickedButton = recordBtn;
-            const audioIdForThisRecording = clickedButton.closest('.audio-block').dataset.audioId;
-            const currentState = clickedButton.getAttribute('data-state');
-
-            if (currentState === 'idle') {
-                if (activeMediaRecorder && activeMediaRecorder.state === "recording") {
-                    console.warn("Another recording is already in progress.");
-                    return; // Prevent multiple simultaneous recordings
-                }
-                activeButtonEl = clickedButton; // Store the button that initiated this recording
-
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    let recorderMimeType = 'audio/webm;codecs=opus';
-                    if (MediaRecorder.isTypeSupported('audio/wav')) recorderMimeType = 'audio/wav';
-                    else if (!MediaRecorder.isTypeSupported(recorderMimeType) && MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) recorderMimeType = 'audio/ogg;codecs=opus';
-                    else if (!MediaRecorder.isTypeSupported(recorderMimeType)) recorderMimeType = '';
-                    
-                    activeMediaRecorder = recorderMimeType ? new MediaRecorder(stream, { mimeType: recorderMimeType }) : new MediaRecorder(stream);
-                    activeAudioChunks = [];
-
-                    if (audioIdForThisRecording === 'rec_warmup') {
-                        if (warmupAudioUrl) URL.revokeObjectURL(warmupAudioUrl);
-                        warmupAudioUrl = null;
-                        document.getElementById('warmup_recording').src = '';
-                        // Style update for playWarmupBtn handled by setPageInteractiveState later
-                    }
-
-                    setPageInteractiveState(true, clickedButton); // Disable other buttons, keep this one active
-                    clickedButton.textContent = '録音停止';
-                    clickedButton.setAttribute('data-state', 'recording');
-
-                    activeMediaRecorder.ondataavailable = e => activeAudioChunks.push(e.data);
-
-                    activeMediaRecorder.onstop = async () => {
-                        // `audioIdForThisRecording` from the outer scope is correctly captured for this onstop
-                        const blob = new Blob(activeAudioChunks, { type: activeMediaRecorder.mimeType || 'application/octet-stream' });
-                        activeAudioChunks = []; // Clear for next use
-
-                        if (audioIdForThisRecording === 'rec_warmup') {
-                            warmupAudioUrl = URL.createObjectURL(blob);
-                            document.getElementById('warmup_recording').src = warmupAudioUrl;
-                            console.log("Warm-up audio recorded for client-side playback.");
-                        } else {
-                            // This is a task recording
-                            const formData = new FormData();
-                            let fileExtension = (activeMediaRecorder.mimeType.split(';')[0].split('/')[1]) || 'bin';
-                            formData.append('audio', blob, `${clientActivityType}_${audioIdForThisRecording}.${fileExtension}`);
-                            formData.append('reference_audio', audioIdForThisRecording);
-                            formData.append('activity_type', clientActivityType);
-
-                            try {
-                                const response = await fetch(`/record/${currentT}/`, {
-                                    method: 'POST', body: formData, headers: { 'X-CSRFToken': csrfToken }
-                                });
-                                const contentType = response.headers.get("content-type");
-                                if (contentType && contentType.indexOf("application/json") !== -1) {
-                                    const data = await response.json();
-                                    if (response.ok && data.status === 'success') {
-                                        console.log(`Successfully recorded task ID: ${audioIdForThisRecording}`);
-                                        audioCompletionStatus[audioIdForThisRecording] = true;
-                                        const recordedBlock = document.querySelector(`.audio-block[data-audio-id="${audioIdForThisRecording}"]`);
-                                        if (recordedBlock) {
-                                            const indicator = recordedBlock.querySelector('.is-recorded-indicator');
-                                            if (indicator) indicator.checked = true;
-                                        }
-                                    } else {
-                                        alert(`録音保存エラー (${audioIdForThisRecording}): ${data.message || response.statusText}`);
-                                    }
-                                } else {
-                                    const errorText = await response.text();
-                                    console.error("Server did not return JSON. Response:", errorText);
-                                    alert(`録音保存中にサーバーエラーが発生しました (${audioIdForThisRecording})。`);
-                                }
-                            } catch (error) {
-                                console.error(`Fetch/JSON parse error for task ID ${audioIdForThisRecording}:`, error);
-                                alert(`ネットワークエラーまたは処理エラー (${audioIdForThisRecording}): ${error}。`);
-                            }
-                        }
-                        
-                        // Reset the button that initiated this recording session
-                        // The global activeButtonEl should still point to it.
-                        if (activeButtonEl) {
-                            activeButtonEl.setAttribute('data-state', 'idle');
-                            // Text and style will be set by setPageInteractiveState
-                        }
-                        setPageInteractiveState(false); // Re-evaluates all button states based on current data
-                        activeMediaRecorder = null; // Clear active recorder
-                        activeButtonEl = null;    // Clear active button
-                    };
-                    activeMediaRecorder.start();
-                } catch (err) {
-                    console.error("Error starting recording:", err);
-                    if (activeButtonEl) { // Reset the specific button that failed
-                       activeButtonEl.textContent = '録音開始';
-                       activeButtonEl.setAttribute('data-state', 'idle');
-                    }
-                    setPageInteractiveState(false); // Reset all button states
-                    alert("録音を開始できませんでした。マイクの許可を確認してください。");
-                    activeMediaRecorder = null;
-                    activeButtonEl = null;
-                }
-            } else if (currentState === 'recording') { // User clicked "Stop Recording"
-                if (activeMediaRecorder && activeMediaRecorder.state === "recording") {
-                    clickedButton.textContent = '停止中...';
-                    clickedButton.disabled = true;
-                    activeMediaRecorder.stop(); // Stop the currently active global mediaRecorder
-                } else {
-                    console.warn("Stop called but no active mediaRecorder in recording state.");
-                    // Fallback UI reset if something is out of sync
-                    clickedButton.textContent = '録音開始';
-                    clickedButton.setAttribute('data-state', 'idle');
-                    setPageInteractiveState(false);
-                    activeButtonEl = null; // Ensure global button is cleared
-                }
-            }
-        };
-    });
+// Initialize button state
+updateSessionComplete();
 </script>
+
 {% endblock %}

@@ -62,7 +62,6 @@ def practice(request):
             else:
                 train_set.append([audio, recording, None])
 
-        train_set=train_set[:3]
         return render(request, 'practice/practice.html', {'train_set': train_set, 'MEDIA_URL': settings.MEDIA_URL})
     else:
         login_form = LogInStudent()
