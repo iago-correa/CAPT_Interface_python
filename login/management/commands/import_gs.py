@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand
 from django.conf import settings
 from practice.models import Audio
 from login.models import Student
+import requests
 import csv
 import os
 
@@ -16,6 +17,7 @@ class Command(BaseCommand):
         file_path = os.path.join(settings.BASE_DIR, csv_path)
 
         experiment_students = Student.objects.filter(control_group=False)
+        print(experiment_students)
         self.stdout.write(f"Importing audios from: {file_path} with type: train_gs")
 
         try:
@@ -37,8 +39,8 @@ class Command(BaseCommand):
                             continue
 
                         audio_filename = os.path.join(gs_path, str(speaker_id), filename)
-
-                        if not os.path.exists(os.path.join(settings.STATIC_ROOT, audio_filename)):
+                        response = requests.get(os.path.join(settings.STATIC_URL, audio_filename))
+                        if response.status_code != 200:
                             continue
 
                         if Audio.objects.filter(file=audio_filename, type='train_gs', student=student).exists():

@@ -125,11 +125,11 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
-STATICFILES_DIRS = [BASE_DIR / "static"]
+# STATIC_URL = 'static/'
+# STATICFILES_DIRS = [BASE_DIR / "static"]
 
 # For production:
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_collected/')
+# STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_collected/')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -157,18 +157,6 @@ PERIOD_DATES = {
     'DELAY_END':      config('PERIOD_DELAY_END', cast=tuple_of_ints), 
 }
 
-# # Dates for the experiment
-# PERIOD_DATES = {
-#     'PRE_START':      (2025, 6, 5, 0, 0, 0),
-#     'PRE_END':        (2025, 6, 9, 10, 0, 0),
-#     'TRAINING_START': (2025, 6, 12, 0, 0, 0),
-#     'TRAINING_END':   (2025, 6, 18, 23, 59, 59), 
-#     'POST_START':     (2025, 6, 19, 0, 0, 0),
-#     'POST_END':       (2025, 6, 25, 23, 59, 59),
-#     'DELAY_START':    (2025, 7, 17, 0, 0, 0),
-#     'DELAY_END':      (2025, 7, 24, 0, 0, 0), 
-# }
-
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
 AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME', default=None)
@@ -179,3 +167,6 @@ AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazo
 
 MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
 MEDIA_ROOT = 'media/'
+
+STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
+STATIC_ROOT = 'static/'
