@@ -21,4 +21,4 @@ requirements_all.txt
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
 .vscode/launch.json
-.data
+data/
