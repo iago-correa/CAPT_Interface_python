@@ -15,7 +15,7 @@ bcrypt==4.3.0
 beautifulsoup4==4.13.4
 bleach==6.2.0
 blessed==1.21.0
-boto3==1.38.28
+boto3
 botocore==1.38.28
 cement==2.10.14
 certifi==2025.4.26
@@ -33,7 +33,7 @@ defusedxml==0.7.1
 Deprecated==1.2.18
 deptry==0.23.0
 Django==5.2.1
-django-storages==1.14.6
+django-storages
 docopt==0.6.2
 einops==0.8.1
 executing==2.2.0
@@ -112,7 +112,6 @@ pythonnet==3.0.5
 pytorch-lightning==2.5.1.post0
 pytorch-metric-learning==2.8.1
 pytz==2025.2
-pywin32==310
 PyYAML==6.0.2
 pyzmq==26.4.0
 referencing==0.36.2
@@ -156,7 +155,7 @@ traitlets==5.14.3
 typer==0.16.0
 typing_extensions==4.14.0
 tzdata==2025.2
-urllib3==1.26.20
+urllib3<2,>=1.26.5
 wcwidth==0.2.13
 webencodings==0.5.1
 wrapt==1.17.2
