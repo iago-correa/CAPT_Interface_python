@@ -25,7 +25,7 @@ class Command(BaseCommand):
         for row in reader:
             Student.objects.get_or_create(
                 student_id=row['student_id'],
-                control_group=row['control_group']
+                defaults={'control_group': row['control_group']}
             )
-    
+
         self.stdout.write(self.style.SUCCESS('Data imported successfully.'))
