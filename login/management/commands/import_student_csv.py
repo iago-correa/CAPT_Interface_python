@@ -16,7 +16,7 @@ class Command(BaseCommand):
         csv_path = kwargs['csv_file']
         file_path = os.path.join(settings.STATIC_URL, csv_path)
 
-        #with open(file_path, newline='', encoding='utf-8-sig') as csvfile:
+        # with open(file_path, newline='', encoding='utf-8-sig') as csvfile:
         response = requests.get(file_path)
         response.raise_for_status()  # Optional: raises error on bad HTTP status
         csvfile = io.StringIO(response.content.decode('utf-8-sig'))
