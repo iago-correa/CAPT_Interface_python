@@ -5,3 +5,4 @@ pydub==0.25.1
 python-decouple==3.8
 boto3
 django-storages
+requests==2.32.3
