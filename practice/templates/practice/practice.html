@@ -34,7 +34,11 @@
                     <button class="playReferenceBtn btn btn-primary btn-sm me-2" data-audio-id-ref="{{ audio.id }}">再生</button>
                     <button class="recordBtn btn btn-danger btn-sm me-2" data-audio-id-rec="{{ audio.id }}" disabled>録音開始</button>
                     <button class="playRecordingBtn btn btn-sm me-2 {% if recording_signed_url %}btn-primary{% else %}btn-outline-secondary disabled pe-none{% endif %}" 
-                        data-audio-id-playrec="{{ audio.id }}" {% if not recording_signed_url %}disabled{% endif %}>録音を再生</button>
+                            data-audio-id-playrec="{{ audio.id }}"
+                            {% if recording %}data-recording-id="{{ recording.id }}"{% endif %}
+                            {% if not recording_signed_url %}disabled{% endif %}>
+                        録音を再生
+                    </button>
                 </div>
             </div>
         </div>
@@ -122,6 +126,19 @@ document.querySelectorAll('.audio-block').forEach(block => {
             refBtn.disabled = false;
             updateCheckbox(audioId, block);
             updateSessionComplete();
+
+            // Log activity: train_listen_ref
+            fetch("{% url 'practice:log_activity' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken,
+                },
+                body: JSON.stringify({
+                    type: "train_listen_ref",
+                    audio_source_id: audioId,
+                }),
+            });
         };
     };
 
@@ -145,7 +162,7 @@ document.querySelectorAll('.audio-block').forEach(block => {
         } else {
             recorder.stop();
             gumStream.getAudioTracks()[0].stop();
-            recBtn.textContent = '処理中...';
+            recBtn.textContent = '処理中.';
             recBtn.disabled = true;
 
             recorder.exportWAV(async blob => {
@@ -193,6 +210,19 @@ document.querySelectorAll('.audio-block').forEach(block => {
         const player = document.getElementById(`recording_player_${audioId}`);
         player.currentTime = 0;
         player.play();
+
+        // Log activity: train_listen_own
+        fetch("{% url 'practice:log_activity' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrfToken,
+            },
+            body: JSON.stringify({
+                type: "train_listen_own",
+                audio_source_id: playBtn.dataset.recordingId,
+            }),
+        });
     };
 });
 </script>

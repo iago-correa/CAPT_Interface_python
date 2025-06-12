@@ -11,6 +11,7 @@ from login.models import Student, Session
 from login.utils import get_current_period, get_signed_url
 from .models import Activity, Audio
 from record.models import Recording
+from random import shuffle
 import json
 
 def practice(request):
@@ -61,7 +62,7 @@ def practice(request):
                 train_set.append([audio, recording, recording_signed_url])
             else:
                 train_set.append([audio, recording, None])
-
+        shuffle(train_set)
         return render(request, 'practice/practice.html', {'train_set': train_set, 'MEDIA_URL': settings.MEDIA_URL})
     else:
         login_form = LogInStudent()
