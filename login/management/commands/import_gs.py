@@ -5,6 +5,7 @@ from login.models import Student
 import requests
 import csv
 import os
+import io
 
 class Command(BaseCommand):
     help = 'Import audios from a CSV file'
@@ -25,36 +26,39 @@ class Command(BaseCommand):
             for student in experiment_students:
                 speaker_id = student.id
 
-                with open(file_path, newline='', encoding='utf-8-sig') as csvfile:
-                    reader = csv.DictReader(csvfile)
+                #with open(file_path, newline='', encoding='utf-8-sig') as csvfile:
+                response = requests.get(file_path)
+                response.raise_for_status()  # Optional: raises error on bad HTTP status
+                csvfile = io.StringIO(response.content.decode('utf-8-sig'))
+                reader = csv.DictReader(csvfile)
 
-                    audios_created_count = 0
-                    audios_skipped_count = 0
+                audios_created_count = 0
+                audios_skipped_count = 0
 
-                    for row in reader:
-                        filename = row['filename']
-                        if not filename:
-                            self.stdout.write(self.style.WARNING(f"Skipping row due to empty 'filename': {row}"))
-                            continue
+                for row in reader:
+                    filename = row['filename']
+                    if not filename:
+                        self.stdout.write(self.style.WARNING(f"Skipping row due to empty 'filename': {row}"))
+                        continue
 
-                        audio_filename = os.path.join(gs_path, str(speaker_id), filename)
-                        request_path = os.path.join(settings.STATIC_URL, audio_filename).replace('\\','/')
-                        response = requests.get(request_path)
-                        if response.status_code != 200:
-                            continue
+                    audio_filename = os.path.join(gs_path, str(speaker_id), filename)
+                    request_path = os.path.join(settings.STATIC_URL, audio_filename).replace('\\','/')
+                    response = requests.get(request_path)
+                    if response.status_code != 200:
+                        continue
 
-                        if Audio.objects.filter(file=audio_filename, type='train_gs', student=student).exists():
-                            audios_skipped_count += 1
-                            continue
+                    if Audio.objects.filter(file=audio_filename, type='train_gs', student=student).exists():
+                        audios_skipped_count += 1
+                        continue
 
-                        audio = Audio(
-                            transcript=row['transcript'],
-                            type='train_gs',
-                            student=student,
-                            file=audio_filename
-                        )
-                        audio.save()
-                        audios_created_count += 1
+                    audio = Audio(
+                        transcript=row['transcript'],
+                        type='train_gs',
+                        student=student,
+                        file=audio_filename
+                    )
+                    audio.save()
+                    audios_created_count += 1
 
                 self.stdout.write(self.style.SUCCESS(
                     f'{audios_created_count} audio entries imported for student {student.id}.'

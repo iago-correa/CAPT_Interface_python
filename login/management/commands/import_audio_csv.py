@@ -1,8 +1,10 @@
 from django.core.management.base import BaseCommand
 from django.conf import settings
 from practice.models import Audio
+import requests
 import csv
 import os
+import io
 
 class Command(BaseCommand):
     help = 'Import audios from a CSV file'
@@ -20,36 +22,39 @@ class Command(BaseCommand):
         self.stdout.write(f"Importing audios from: {file_path} with type: {audio_type}")
 
         try:
-            with open(file_path, newline='', encoding='utf-8-sig') as csvfile:
-                reader = csv.DictReader(csvfile)
+            # with open(file_path, newline='', encoding='utf-8-sig') as csvfile:
+            response = requests.get(file_path)
+            response.raise_for_status()  # Optional: raises error on bad HTTP status
+            csvfile = io.StringIO(response.content.decode('utf-8-sig'))
+            reader = csv.DictReader(csvfile)
 
-                if 'filename' not in reader.fieldnames or 'transcript' not in reader.fieldnames:
-                    self.stderr.write(self.style.ERROR("CSV must contain 'filename' and 'transcript' columns."))
-                    return
+            if 'filename' not in reader.fieldnames or 'transcript' not in reader.fieldnames:
+                self.stderr.write(self.style.ERROR("CSV must contain 'filename' and 'transcript' columns."))
+                return
 
-                audios_created_count = 0
-                audios_skipped_count = 0
+            audios_created_count = 0
+            audios_skipped_count = 0
 
-                for row in reader:
-                    filename = row['filename']
-                    if not filename:
-                        self.stdout.write(self.style.WARNING(f"Skipping row due to empty 'filename': {row}"))
-                        continue
+            for row in reader:
+                filename = row['filename']
+                if not filename:
+                    self.stdout.write(self.style.WARNING(f"Skipping row due to empty 'filename': {row}"))
+                    continue
 
-                    relative_file_path = os.path.join(source_path, filename)
+                relative_file_path = os.path.join(source_path, filename)
 
-                    # ✅ Check for existing entry
-                    if Audio.objects.filter(file=relative_file_path, type=audio_type).exists():
-                        audios_skipped_count += 1
-                        continue
+                # ✅ Check for existing entry
+                if Audio.objects.filter(file=relative_file_path, type=audio_type).exists():
+                    audios_skipped_count += 1
+                    continue
 
-                    audio = Audio()
-                    audio.transcript = row['transcript']
-                    audio.type = audio_type
-                    audio.file = relative_file_path
-                    
-                    audio.save()
-                    audios_created_count += 1
+                audio = Audio()
+                audio.transcript = row['transcript']
+                audio.type = audio_type
+                audio.file = relative_file_path
+                
+                audio.save()
+                audios_created_count += 1
 
             self.stdout.write(self.style.SUCCESS(f'{audios_created_count} audio entries imported successfully.'))
             self.stdout.write(self.style.WARNING(f'{audios_skipped_count} duplicate entries skipped.'))
