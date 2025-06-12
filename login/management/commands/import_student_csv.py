@@ -12,7 +12,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         csv_path = kwargs['csv_file']
-        file_path = os.path.join(settings.BASE_DIR, csv_path)
+        file_path = os.path.join(settings.STATIC_URL, csv_path)
 
         with open(file_path, newline='', encoding='utf-8-sig') as csvfile:
             reader = csv.DictReader(csvfile)

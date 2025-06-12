@@ -13,7 +13,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         csv_path = kwargs['csv_file']
-        file_path = os.path.join(settings.BASE_DIR, csv_path)
+        file_path = os.path.join(settings.STATIC_URL, csv_path)
         audio_type = kwargs['type']
         source_path = 'audio'
 

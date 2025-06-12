@@ -14,7 +14,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         csv_path = kwargs['csv_file']
-        file_path = os.path.join(settings.BASE_DIR, csv_path)
+        file_path = os.path.join(settings.STATIC_URL, csv_path)
 
         experiment_students = Student.objects.filter(control_group=False)
         self.stdout.write(f"Importing audios from: {file_path} with type: train_gs")
