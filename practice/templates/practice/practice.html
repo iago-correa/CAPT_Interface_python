@@ -186,6 +186,7 @@ document.querySelectorAll('.audio-block').forEach(block => {
                         playBtn.disabled = false;
                         playBtn.classList.remove('btn-outline-secondary', 'disabled', 'pe-none');
                         playBtn.classList.add('btn-primary');
+                        playBtn.setAttribute("data-recording-id", data.recording.id);
 
                         sessionStatus[audioId].recorded = true;
                         updateCheckbox(audioId, block);
