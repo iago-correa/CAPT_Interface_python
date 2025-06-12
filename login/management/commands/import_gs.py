@@ -17,7 +17,6 @@ class Command(BaseCommand):
         file_path = os.path.join(settings.BASE_DIR, csv_path)
 
         experiment_students = Student.objects.filter(control_group=False)
-        print(experiment_students)
         self.stdout.write(f"Importing audios from: {file_path} with type: train_gs")
 
         try:
@@ -39,7 +38,8 @@ class Command(BaseCommand):
                             continue
 
                         audio_filename = os.path.join(gs_path, str(speaker_id), filename)
-                        response = requests.get(os.path.join(settings.STATIC_URL, audio_filename))
+                        request_path = os.path.join(settings.STATIC_URL, audio_filename).replace('\\','/')
+                        response = requests.get(request_path)
                         if response.status_code != 200:
                             continue
 
