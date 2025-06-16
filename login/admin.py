@@ -9,55 +9,6 @@ from practice.models import Activity, Audio
 
 import datetime
 
-class StudentCompletionFilter(admin.SimpleListFilter):
-    title = 'Completion Status'  # Title for the filter sidebar
-    parameter_name = 'completion_status'  # URL parameter
-
-    def lookups(self, request, model_admin):
-
-        return (
-            ('completed', 'Completed all test recordings'),
-            ('not_completed', 'Not completed all test recordings'),
-        )
-
-    def queryset(self, request, queryset):
-        
-        # --- Re-run the query to find the IDs of completed students ---
-        required_audio_count = Audio.objects.filter(type='test_nat').count()
-        activity_conditions = Q(
-            type='test_pre_record',
-            recording__original_audio__type='test_nat',
-            recording__isnull=False
-        )
-        
-        completed_student_ids = Activity.objects.filter(activity_conditions)\
-            .values('session__student')\
-            .annotate(distinct_audio_count=Count('recording__original_audio', distinct=True))\
-            .filter(distinct_audio_count=required_audio_count)\
-            .values_list('session__student_id', flat=True)
-        # --- End of query logic ---
-
-        if self.value() == 'completed':
-            # If the user clicks 'Completed', filter the list to these IDs
-            return queryset.filter(pk__in=completed_student_ids)
-
-        if self.value() == 'not_completed':
-            # If the user clicks 'Not Completed', exclude these IDs
-            return queryset.exclude(pk__in=completed_student_ids)
-        
-        return queryset
-
-class StudentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'student_id', 'control_group')
-    list_filter = ('control_group', StudentCompletionFilter)
-
-admin.site.register(Student, StudentAdmin)
-
-class SessionAdmin(admin.ModelAdmin):
-    list_display = ('id', 'student', 'start_time', 'end_time') 
-
-admin.site.register(Session, SessionAdmin)
-    
 try:
     period_dates_config = settings.PERIOD_DATES
     PERIODS_CONFIG = [
@@ -87,19 +38,24 @@ try:
             'start_time': timezone.make_aware(datetime.datetime(*period_dates_config.get('POST_START'))),
             'end_time': timezone.make_aware(datetime.datetime(*period_dates_config.get('POST_END'))),
             'activity_type': 'test_post_record',
-            'count_types': ['train_nat', 'train_gs'] # Count these types separately
+            'count_types': ['test_nat']
         },
         {
             'name': '5. Delayed Recording',
             'start_time': timezone.make_aware(datetime.datetime(*period_dates_config.get('DELAY_START'))),
             'end_time': timezone.make_aware(datetime.datetime(*period_dates_config.get('DELAY_END'))),
             'activity_type': 'test_delay_record',
-            'count_types': ['train_nat', 'train_gs'] # Count these types separately
+            'count_types': ['test_nat'] 
         }
     ]
 except (AttributeError, TypeError):
     # Fallback if settings.PERIOD_DATES is not configured, prevents crashing
     PERIODS_CONFIG = []
+
+total_audio_counts = {
+    item['type']: item['count']
+    for item in Audio.objects.values('type').annotate(count=Count('id'))
+}
 
 @admin.register(StudentDataExplorer)
 class StudentDataExplorerAdmin(admin.ModelAdmin):
@@ -240,3 +196,106 @@ class StudentCompletionReportAdmin(admin.ModelAdmin):
         }
         
         return TemplateResponse(request, "admin/completion_report.html", context)
+
+class StudentCompletionFilter(admin.SimpleListFilter):
+    title = 'Completion Status by Period'
+    parameter_name = 'completion_status'
+
+    def lookups(self, request, model_admin):
+        """Dynamically generates a simpler list of filter options."""
+        options = []
+        # We now generate one "completed" and "not completed" link per period.
+        for i, period in enumerate(PERIODS_CONFIG):
+            options.append((f'{i}-completed', f"Completed: {period['name']}"))
+            options.append((f'{i}-not_completed', f"Not Completed: {period['name']}"))
+        return options
+
+    def queryset(self, request, queryset):
+        """Filters the Student list based on the new completion criteria."""
+        value = self.value()
+        if not value:
+            return queryset
+
+        try:
+            # Parse the simpler value, e.g., "1-completed"
+            period_index_str, status = value.split('-')
+            period_index = int(period_index_str)
+        except (ValueError, IndexError):
+            return queryset
+
+        if not (0 <= period_index < len(PERIODS_CONFIG)):
+            return queryset
+
+        period = PERIODS_CONFIG[period_index]
+        start_time, end_time = period['start_time'], period['end_time']
+        
+        completed_student_ids = []
+
+        # --- Conditional Logic Based on the Selected Period ---
+
+        if period_index in [0, 3, 4]:  # Logic for Pre, Post, and Delayed periods
+            audio_type = 'test_nat'
+            completion_target = total_audio_counts.get(audio_type, 0)
+            
+            if completion_target > 0:
+                # Find students who completed ALL unique 'test_nat' audios
+                completed_student_ids = Activity.objects.filter(
+                    time__range=(start_time, end_time),
+                    recording__isnull=False,
+                    recording__original_audio__type=audio_type
+                ).values('session__student').annotate(
+                    unique_recordings=Count('recording__original_audio', distinct=True)
+                ).filter(
+                    unique_recordings=completion_target
+                ).values_list('session__student_id', flat=True)
+
+        elif period_index in [1, 2]:  # New, complex logic for Training periods
+            # We must find the two groups of completers separately and combine them.
+
+            # A) Find completers from the Control Group (control_group=True)
+            # They must complete all 'train_nat' audios.
+            nat_target = total_audio_counts.get('train_nat', 0)
+            control_completers = []
+            if nat_target > 0:
+                control_completers = list(Activity.objects.filter(
+                    session__student__control_group=True,
+                    time__range=(start_time, end_time),
+                    recording__isnull=False,
+                    recording__original_audio__type='train_nat'
+                ).values('session__student').annotate(
+                    c=Count('recording__original_audio', distinct=True)
+                ).filter(c=nat_target).values_list('session__student_id', flat=True))
+
+            # B) Find completers from the Experimental Group (control_group=False)
+            # They must complete at least 20 unique 'train_gs' audios.
+            gs_target = 20
+            experimental_completers = list(Activity.objects.filter(
+                session__student__control_group=False,
+                time__range=(start_time, end_time),
+                recording__isnull=False,
+                recording__original_audio__type='train_gs'
+            ).values('session__student').annotate(
+                c=Count('recording__original_audio', distinct=True)
+            ).filter(c__gte=gs_target).values_list('session__student_id', flat=True))
+            
+            # Combine the two lists of student IDs
+            completed_student_ids = control_completers + experimental_completers
+
+        # --- Apply the final filter to the student list ---
+        if status == 'completed':
+            return queryset.filter(pk__in=completed_student_ids)
+        if status == 'not_completed':
+            return queryset.exclude(pk__in=completed_student_ids)
+            
+        return queryset
+
+class StudentAdmin(admin.ModelAdmin):
+    list_display = ('id', 'student_id', 'control_group')
+    list_filter = ('control_group', StudentCompletionFilter)
+
+admin.site.register(Student, StudentAdmin)
+
+class SessionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'student', 'start_time', 'end_time') 
+
+admin.site.register(Session, SessionAdmin)
