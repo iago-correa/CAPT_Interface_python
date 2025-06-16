@@ -131,8 +131,8 @@ class StudentDataExplorerAdmin(admin.ModelAdmin):
                         period = PERIODS_CONFIG[period_index]
 
                         # --- Run queries for the SINGLE selected period ---
-                        start = period['start_time']
-                        end = period['end_time']
+                        start = period['start_time'].replace(tzinfo=None)
+                        end = period['end_time'].replace(tzinfo=None)
                         act_type = period['activity_type']
                         
                         sessions = Session.objects.filter(
@@ -191,18 +191,17 @@ class StudentCompletionReportAdmin(admin.ModelAdmin):
 
         for period in PERIODS_CONFIG:
             period_name = period['name']
-            start_time = period['start_time']
-            end_time = period['end_time']
+            start_time = period['start_time'].replace(tzinfo=None)
+            end_time = period['end_time'].replace(tzinfo=None)
             
             period_counts = {}
             for audio_type in period['count_types']:
-                # --- NEW MODIFIED LOGIC STARTS HERE ---
 
                 # 1. Get the actual number of audios in the DB. This is the default target.
                 completion_target = total_audio_counts.get(audio_type, 0)
                 display_total = completion_target
 
-                # 2. Apply the new special rule for 'train_gs'
+                # 2. Apply the special rule for 'train_gs'
                 if audio_type == 'train_gs':
                     # The target for completion is now a fixed number.
                     completion_target = 20
@@ -221,12 +220,8 @@ class StudentCompletionReportAdmin(admin.ModelAdmin):
                     ).annotate(
                         unique_recordings=Count('recording__original_audio', distinct=True)
                     ).filter(
-                        # 3. The comparison now uses the new target and
-                        #    checks for "greater than or equal to" (__gte).
                         unique_recordings__gte=completion_target
                     ).count()
-                
-                # --- END OF MODIFIED LOGIC ---
 
                 period_counts[audio_type] = {
                     'completed': num_students_completed,
