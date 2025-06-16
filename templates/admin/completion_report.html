@@ -1,0 +1,41 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}
+  Student Completion Report
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <h1>Student Completion Report</h1>
+  <p>This report shows the number of students who completed all required recordings for a specific audio type within each period.</p>
+
+  {% for period_report in report_data %}
+    <div class="module">
+      <h2>{{ period_report.name }}</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Audio Type to Complete</th>
+            <th>Number of Students Completed</th>
+            <th>Total Audios Required</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for audio_type, data in period_report.counts.items %}
+            <tr>
+              <td><strong>{{ audio_type }}</strong></td>
+              <td>{{ data.completed }}</td>
+              <td>{{ data.total_required }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="3">No report types configured for this period.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% empty %}
+    <p>No reporting periods are configured. Please check your admin.py file.</p>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,107 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}Student Data Explorer{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <h1>Student Data Explorer</h1>
+
+  <div class="module">
+    <form method="get" action="">
+      <div class="form-row" style="display: flex; align-items: center; gap: 20px;">
+        <div>
+          <label for="student-select">1. Select a Student:</label>
+          <select name="student_id" id="student-select">
+            <option value="">--------------------</option>
+            {% for student in all_students %}
+              <option value="{{ student.pk }}" {% if selected_student.pk == student.pk %}selected{% endif %}>
+                {{ student.student_id }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="period-select">2. Select a Period:</label>
+          <select name="period_index" id="period-select">
+            <option value="">--------------------</option>
+            {% for period in periods %}
+              {# forloop.counter0 provides the 0-based index of the loop #}
+              <option value="{{ forloop.counter0 }}" {% if selected_period_index == forloop.counter0 %}selected{% endif %}>
+                {{ period.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <button type="submit" class="button">Load Data</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  {% if selected_student and results %}
+    <h2>Data for Student: {{ selected_student.student_id }}</h2>
+
+    <div class="module">
+      <h3>{{ results.name }}</h3>
+
+      <h4>Completion Counts</h4>
+      <div style="padding-left: 20px;">
+        <ul>
+          {% for type, count in results.completion_counts.items %}
+            <li><strong>{{ type }}:</strong> {{ count }} unique audios recorded.</li>
+          {% empty %}
+            <li>No count data available for this period.</li>
+          {% endfor %}
+        </ul>
+      </div>
+      <hr>
+
+      <h4>Sessions</h4>
+      <table>
+        <thead><tr><th>ID</th><th>Student</th><th>Start Time</th><th>End Time</th></tr></thead>
+        <tbody>
+          {% for session in results.sessions %}
+            <tr><td>{{ session.id }}</td><td>{{ session.student }}</td><td>{{ session.start_time }}</td><td>{{ session.end_time }}</td></tr>
+          {% empty %}
+            <tr><td colspan="4">No sessions found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <h4>All Activities</h4>
+      <table>
+        <thead><tr><th>ID</th><th>Type</th><th>Time</th><th>Audio</th><th>Recording</th></tr></thead>
+        <tbody>
+          {% for activity in results.all_activities %}
+            <tr><td>{{ activity.id }}</td><td>{{ activity.type }}</td><td>{{ activity.time }}</td><td>{{ activity.audio }}</td><td>{{ activity.recording }}</td></tr>
+          {% empty %}
+            <tr><td colspan="5">No activities found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      
+      <h4>Filtered Activities (type: {{ results.activity_type }})</h4>
+      <table>
+        <thead><tr><th>ID</th><th>Type</th><th>Time</th><th>Audio</th><th>Recording</th></tr></thead>
+        <tbody>
+          {% for activity in results.filtered_activities %}
+            <tr><td>{{ activity.id }}</td><td>{{ activity.type }}</td><td>{{ activity.time }}</td><td>{{ activity.audio }}</td><td>{{ activity.recording }}</td></tr>
+          {% empty %}
+            <tr><td colspan="5">No '{{ results.activity_type }}' activities found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  
+  {% else %}
+    {% if request.GET.student_id %}
+      <p>Please select a period from the dropdown to view data for the selected student.</p>
+    {% else %}
+      <p>Please select a student and a period to begin.</p>
+    {% endif %}
+  {% endif %}
+
+</div>
+{% endblock %}

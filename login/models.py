@@ -20,3 +20,17 @@ class Session(models.Model):
     
     def __str__(self):
         return f"{self.student.student_id}: {self.start_time} - {self.end_time}"
+    
+class StudentCompletionReport(Student):
+    class Meta:
+        # No new DB table will be created.
+        proxy = True
+        
+        verbose_name = 'Completion Report'
+        verbose_name_plural = 'Completion Reports'
+
+class StudentDataExplorer(Student):
+    class Meta:
+        proxy = True
+        verbose_name = 'Student Data Explorer'
+        verbose_name_plural = 'Student Data Explorer'
