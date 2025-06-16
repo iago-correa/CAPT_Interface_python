@@ -196,24 +196,22 @@ class StudentCompletionReportAdmin(admin.ModelAdmin):
             
             period_counts = {}
             for audio_type in period['count_types']:
-                # --- MODIFIED LOGIC STARTS HERE ---
+                # --- NEW MODIFIED LOGIC STARTS HERE ---
 
-                # 1. Get the ACTUAL number of required audios from the database.
-                # This is used to calculate who has completed the task.
-                actual_total_from_db = total_audio_counts.get(audio_type, 0)
-                
-                # 2. Determine the number to DISPLAY in the report.
-                # It defaults to the actual number...
-                display_total = actual_total_from_db
-                # ...but we apply the special rule if the type is 'train_gs'.
+                # 1. Get the actual number of audios in the DB. This is the default target.
+                completion_target = total_audio_counts.get(audio_type, 0)
+                display_total = completion_target
+
+                # 2. Apply the new special rule for 'train_gs'
                 if audio_type == 'train_gs':
+                    # The target for completion is now a fixed number.
+                    completion_target = 20
+                    # The number displayed in the report is also fixed.
                     display_total = 20
 
-                # --- End of special rule ---
-
                 num_students_completed = 0
-                # The completion logic MUST use the actual number of audios in the DB.
-                if actual_total_from_db > 0:
+                # We only run the query if there is a target to meet.
+                if completion_target > 0:
                     num_students_completed = Activity.objects.filter(
                         time__range=(start_time, end_time),
                         recording__isnull=False,
@@ -223,14 +221,15 @@ class StudentCompletionReportAdmin(admin.ModelAdmin):
                     ).annotate(
                         unique_recordings=Count('recording__original_audio', distinct=True)
                     ).filter(
-                        # The calculation for completion uses the REAL total from the database.
-                        unique_recordings=actual_total_from_db
+                        # 3. The comparison now uses the new target and
+                        #    checks for "greater than or equal to" (__gte).
+                        unique_recordings__gte=completion_target
                     ).count()
                 
-                # Store the result for this audio type
+                # --- END OF MODIFIED LOGIC ---
+
                 period_counts[audio_type] = {
                     'completed': num_students_completed,
-                    # The report display uses the potentially overridden display_total.
                     'total_required': display_total,
                 }
             
