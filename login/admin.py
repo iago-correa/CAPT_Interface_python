@@ -182,52 +182,58 @@ class StudentDataExplorerAdmin(admin.ModelAdmin):
 @admin.register(StudentCompletionReport)
 class StudentCompletionReportAdmin(admin.ModelAdmin):
     def changelist_view(self, request, extra_context=None):
-        # This list will hold the final data for our report
         report_data = []
 
-        # To be efficient, let's get the total count of audios per type once
         total_audio_counts = {
             item['type']: item['count']
             for item in Audio.objects.values('type').annotate(count=Count('id'))
         }
 
-        # Loop through each defined period from our shared config
         for period in PERIODS_CONFIG:
             period_name = period['name']
             start_time = period['start_time']
             end_time = period['end_time']
             
-            # This dictionary will store results for the current period
             period_counts = {}
-
-            # For each period, loop through the audio types we need to report on
             for audio_type in period['count_types']:
-                # Get the total number of audios for this type from our cache
-                total_required = total_audio_counts.get(audio_type, 0)
+                # --- MODIFIED LOGIC STARTS HERE ---
+
+                # 1. Get the ACTUAL number of required audios from the database.
+                # This is used to calculate who has completed the task.
+                actual_total_from_db = total_audio_counts.get(audio_type, 0)
                 
+                # 2. Determine the number to DISPLAY in the report.
+                # It defaults to the actual number...
+                display_total = actual_total_from_db
+                # ...but we apply the special rule if the type is 'train_gs'.
+                if audio_type == 'train_gs':
+                    display_total = 20
+
+                # --- End of special rule ---
+
                 num_students_completed = 0
-                if total_required > 0:
-                    # This is our main query. It finds students who have a distinct
-                    # recording count that matches the total required count for that type.
+                # The completion logic MUST use the actual number of audios in the DB.
+                if actual_total_from_db > 0:
                     num_students_completed = Activity.objects.filter(
                         time__range=(start_time, end_time),
                         recording__isnull=False,
                         recording__original_audio__type=audio_type
                     ).values(
-                        'session__student' # Group by student
+                        'session__student'
                     ).annotate(
                         unique_recordings=Count('recording__original_audio', distinct=True)
                     ).filter(
-                        unique_recordings=total_required
-                    ).count() # Finally, count how many students met the criteria
+                        # The calculation for completion uses the REAL total from the database.
+                        unique_recordings=actual_total_from_db
+                    ).count()
                 
                 # Store the result for this audio type
                 period_counts[audio_type] = {
                     'completed': num_students_completed,
-                    'total_required': total_required,
+                    # The report display uses the potentially overridden display_total.
+                    'total_required': display_total,
                 }
             
-            # Add this period's full report to our main data list
             report_data.append({
                 'name': period_name,
                 'counts': period_counts,
