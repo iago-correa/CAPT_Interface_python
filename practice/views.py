@@ -8,7 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 from urllib.parse import urlencode
 from login.forms import LogInStudent
 from login.models import Student, Session
-from login.utils import get_current_period, get_signed_url
+from login.utils import get_current_period, get_signed_url, get_period_of
 from .models import Activity, Audio
 from record.models import Recording
 from random import shuffle
@@ -57,11 +57,19 @@ def practice(request):
                 activities__type='train_record',
                 original_audio = audio).order_by('activities__time').last()
             if recording:
+                
                 file_key = f"{settings.MEDIA_ROOT}{recording.recorded_audio.name}"
                 recording_signed_url = get_signed_url(file_key)
-                train_set.append([audio, recording, recording_signed_url])
+                
+                recording_time = Activity.objects.filter(recording=recording, type='train_record').order_by('-time').first().time
+                if get_current_period() == get_period_of(recording_time):
+                    checked = True
+                else:
+                    checked = False
+                train_set.append([audio, recording, recording_signed_url, checked])
+                
             else:
-                train_set.append([audio, recording, None])
+                train_set.append([audio, recording, None, False])
         shuffle(train_set)
         return render(request, 'practice/practice.html', {'train_set': train_set, 'MEDIA_URL': settings.MEDIA_URL})
     else:

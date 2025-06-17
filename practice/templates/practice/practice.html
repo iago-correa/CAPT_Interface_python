@@ -4,9 +4,15 @@
 <div class="container mt-4">
     <h1>練習セッション</h1>
 
+    <div id="train_complete_msg" class="alert alert-success" role="alert" style="visibility: hidden; display: none">
+        <p class="mb-0"> この練習セッションは既に完了しています。</p>
+        <p class="mb-0"> 練習続きたい場合は自由にページそのままに利用しても大丈夫です。</p>
+        <p class="mb-0"> 終了の場合は、「セッション完了」で終了してください。終了した後でも、またログインできて練習ページ利用できます。</p>
+    </div>
+
     <div class="alert alert-info" role="alert">
         <h4 class="alert-heading">練習の進め方</h4>
-        <p>まずお手本の音声（「再生」ボタン）を聞いてから、ご自身の発音を録音（「録音開始」ボタン）してください。録音した音声は「録音を再生」ボタンで確認できます。</p>
+        <p class="mb-0">まずお手本の音声（「再生」ボタン）を聞いてから、ご自身の発音を録音（「録音開始」ボタン）してください。録音した音声は「録音を再生」ボタンで確認できます。</p>
         <hr>
         <p class="mb-0">お手本の再生、ご自身の録音、録音の再生は、何度でも繰り返し行うことができます。ただし、各課題で最低一回ずつお手本を聞き、ご自身の音声を録音すると、「セッション完了」ボタンが有効になります。</p>
         <hr>
@@ -14,12 +20,23 @@
         <p class="mb-0 text-decoration-underline">i.lourencocorrea.747@stn.nitech.ac.jp</p>
     </div>
 
-    {% for audio, recording, recording_signed_url in train_set %}
+    {% for audio, recording, recording_signed_url, checked in train_set %}
         {% if forloop.first %}{% csrf_token %}{% endif %}
         <div class="audio-block card mb-3" data-audio-id="{{ audio.id }}">
             <div class="card-body">
                 <p class="mb-3">
-                    <input type="checkbox" class="completion-checkbox form-check-input" data-audio-id-chk="{{ audio.id }}" disabled style="margin-right: 10px;" />
+                    {% if checked %} 
+                        <input type="checkbox" 
+                            class="completion-checkbox form-check-input" 
+                            data-audio-id-chk="{{ audio.id }}" 
+                            disabled style="margin-right: 10px;"
+                            checked="true"/>
+                    {% else %}
+                        <input type="checkbox" 
+                            class="completion-checkbox form-check-input" 
+                            data-audio-id-chk="{{ audio.id }}" 
+                            disabled style="margin-right: 10px;"/>
+                    {% endif %}
                     {{ audio.transcript }}
                 </p>
                 <audio id="audio_player_{{ audio.id }}">
@@ -55,6 +72,10 @@ const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').va
 const sessionStatus = {};
 let recorder, gumStream, audioContext;
 
+window.onload = function() {
+    updateSessionComplete();
+  };
+
 function updateCheckbox(audioId, block) {
     const chk = block.querySelector('.completion-checkbox');
     if (chk && sessionStatus[audioId].recorded && sessionStatus[audioId].listened) {
@@ -62,15 +83,26 @@ function updateCheckbox(audioId, block) {
     }
 }
 
+function areAllCheckboxesChecked(className) {
+    const checkboxes = document.querySelectorAll(`input[type="checkbox"].${className}`);
+    return Array.from(checkboxes).every(checkbox => checkbox.checked);
+}
+
 function updateSessionComplete() {
-    const btn = document.getElementById('completeTrainingBtn');
-    const allDone = Object.values(sessionStatus).every(s => s.listened && s.recorded);
-    btn.disabled = !allDone;
-    btn.classList.toggle('btn-success', allDone);
-    btn.classList.toggle('btn-outline-success', !allDone);
-    btn.classList.toggle('disabled', !allDone);
-    btn.classList.toggle('pe-none', !allDone);
-    if (allDone) {
+    const btn = document.getElementById('completeTrainingBtn');    
+    const div = document.getElementById('train_complete_msg');
+    const allChecked = areAllCheckboxesChecked('completion-checkbox');
+    // const allDone = Object.values(sessionStatus).every(s => s.listened && s.recorded);
+    console.log(allChecked);
+    // console.log(allDone)
+    btn.disabled = !allChecked;
+    btn.classList.toggle('btn-success', allChecked);
+    btn.classList.toggle('btn-outline-success', !allChecked);
+    btn.classList.toggle('disabled', !allChecked);
+    btn.classList.toggle('pe-none', !allChecked);
+    if (allChecked) {
+        div.style.visibility = 'visible';
+        div.style.display = 'block'
         btn.onclick = () => {
             window.location.href = "{% url 'login:logout' %}?message=" + encodeURIComponent("練習セッションお疲れ様でした！");
         };
@@ -195,7 +227,7 @@ document.querySelectorAll('.audio-block').forEach(block => {
                         alert("録音の保存に失敗しました。");
                     }
                 } catch (err) {
-                    alert("エラーが発生しました。");
+                    alert("エラーが発生しました。\n明細：" + err.message);
                     console.error(err);
                 }
 
