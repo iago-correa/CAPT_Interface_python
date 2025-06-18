@@ -147,14 +147,16 @@ def tuple_of_ints(value):
         return tuple(int(x) for x in value.split(','))
 
 PERIOD_DATES = {
-    'PRE_START':      config('PERIOD_PRE_START', cast=tuple_of_ints),
-    'PRE_END':        config('PERIOD_PRE_END', cast=tuple_of_ints),
-    'TRAINING_START': config('PERIOD_TRAINING_START', cast=tuple_of_ints),
-    'TRAINING_END':   config('PERIOD_TRAINING_END', cast=tuple_of_ints), 
-    'POST_START':     config('PERIOD_POST_START', cast=tuple_of_ints),
-    'POST_END':       config('PERIOD_POST_END', cast=tuple_of_ints),
-    'DELAY_START':    config('PERIOD_DELAY_START', cast=tuple_of_ints),
-    'DELAY_END':      config('PERIOD_DELAY_END', cast=tuple_of_ints), 
+    'PRE_START':        config('1_PERIOD_PRE_START', cast=tuple_of_ints),
+    'PRE_END':          config('1_PERIOD_PRE_END', cast=tuple_of_ints),
+    'TRAINING_START_1': config('2_PERIOD_TRAINING_START', cast=tuple_of_ints),
+    'TRAINING_END_1':   config('2_PERIOD_TRAINING_END', cast=tuple_of_ints), 
+    'TRAINING_START_2': config('3_PERIOD_TRAINING_START', cast=tuple_of_ints),
+    'TRAINING_END_2':   config('3_PERIOD_TRAINING_END', cast=tuple_of_ints), 
+    'POST_START':       config('4_PERIOD_POST_START', cast=tuple_of_ints),
+    'POST_END':         config('4_PERIOD_POST_END', cast=tuple_of_ints),
+    'DELAY_START':      config('5_PERIOD_DELAY_START', cast=tuple_of_ints),
+    'DELAY_END':        config('5_PERIOD_DELAY_END', cast=tuple_of_ints), 
 }
 
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'

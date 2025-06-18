@@ -2,7 +2,7 @@
 {% load static %}
 {% block content %}
 <div class="container mt-4">
-    <h1>練習セッション</h1>
+    <h1>練習セッション {{ period }}</h1>
 
     <div id="train_complete_msg" class="alert alert-success" role="alert" style="visibility: hidden; display: none">
         <p class="mb-0"> この練習セッションは既に完了しています。</p>
@@ -74,6 +74,7 @@
 <script>
 const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
 const sessionStatus = {};
+const currentT = {{ period }};
 let recorder, gumStream, audioContext;
 
 window.onload = function() {
@@ -220,7 +221,7 @@ document.querySelectorAll('.audio-block').forEach(block => {
                 formData.append('activity_type', 'train_record');
 
                 try {
-                    const res = await fetch('/record/1/', {
+                    const res = await fetch(`/record/${currentT}/`, {
                         method: 'POST',
                         headers: { 'X-CSRFToken': csrfToken },
                         body: formData

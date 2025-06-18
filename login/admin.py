@@ -21,15 +21,15 @@ try:
         },
         {
             'name': '2. Training Session 1',
-            'start_time': timezone.make_aware(datetime.datetime(*period_dates_config.get('TRAINING_START'))),
-            'end_time': timezone.make_aware(datetime.datetime(2025, 6, 19, 23, 59, 59)),
+            'start_time': timezone.make_aware(datetime.datetime(*period_dates_config.get('TRAINING_START_1'))),
+            'end_time': timezone.make_aware(datetime.datetime(*period_dates_config.get('TRAINING_END_1'))),
             'activity_type': 'train_record',
             'count_types': ['train_nat', 'train_gs'] # Count these types separately
         },
         {
             'name': '3. Training Session 2',
-            'start_time': timezone.make_aware(datetime.datetime(2025, 6, 20, 8, 0, 0)),
-            'end_time': timezone.make_aware(datetime.datetime(*period_dates_config.get('TRAINING_END'))),
+            'start_time': timezone.make_aware(datetime.datetime(*period_dates_config.get('TRAINING_START_2'))),
+            'end_time': timezone.make_aware(datetime.datetime(*period_dates_config.get('TRAINING_END_2'))),
             'activity_type': 'train_record',
             'count_types': ['train_nat', 'train_gs'] # Count these types separately
         },
@@ -104,7 +104,7 @@ class StudentDataExplorerAdmin(admin.ModelAdmin):
                         completion_counts = {}
                         for audio_type in period['count_types']:
                             count = all_activities.filter(
-                                recording__isnull=False, recording__original_audio__type=audio_type
+                                recording__isnull=False, recording__original_audio__type=audio_type, type=act_type
                             ).aggregate(
                                 unique_recordings=Count('recording__original_audio', distinct=True)
                             )['unique_recordings']

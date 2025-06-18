@@ -26,7 +26,7 @@ def login(request):
 
         period = get_current_period()
 
-        if period == 1:
+        if period == 1 or period == 2:
             student_id = request.POST.get('student_id')
             try_log_in(request, student_id)
             return redirect('practice:practice')
@@ -44,7 +44,7 @@ def login(request):
             
             period = get_current_period()
 
-            if period == 1:
+            if period == 1 or period == 2:
                 return redirect('practice:practice')
             elif period == -1:
                 request.error = '現在は実験期間外のため、ログインできません。実験期間中に再度アクセスしてください。'

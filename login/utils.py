@@ -17,8 +17,10 @@ def _get_dt(key_name):
 try:
     pre_start_date = _get_dt('PRE_START')
     pre_end_date = _get_dt('PRE_END')
-    training_start_date = _get_dt('TRAINING_START')
-    training_end_date = _get_dt('TRAINING_END')
+    training_start_date_1 = _get_dt('TRAINING_START_1')
+    training_end_date_1 = _get_dt('TRAINING_END_1')
+    training_start_date_2 = _get_dt('TRAINING_START_2')
+    training_end_date_2 = _get_dt('TRAINING_END_2')
     post_start_date = _get_dt('POST_START')
     post_end_date = _get_dt('POST_END')
     delay_start_date = _get_dt('DELAY_START')
@@ -32,12 +34,14 @@ def get_current_period():
 
     if pre_start_date <= current_time <= pre_end_date:
         return 0
-    elif training_start_date <= current_time <= training_end_date:
+    elif training_start_date_1 <= current_time <= training_end_date_1:
         return 1
-    elif post_start_date <= current_time <= post_end_date:
+    elif training_start_date_2 <= current_time <= training_end_date_2:
         return 2
-    elif delay_start_date <= current_time <= delay_end_date:
+    elif post_start_date <= current_time <= post_end_date:
         return 3
+    elif delay_start_date <= current_time <= delay_end_date:
+        return 4
     else:
         return -1
     
@@ -47,8 +51,10 @@ def get_period_of(time):
     
     if pre_start_date <= time <= pre_end_date:
         return 0
-    elif training_start_date <= time <= training_end_date:
+    elif training_start_date_1 <= time <= training_end_date_1:
         return 1
+    elif training_start_date_2 <= time <= training_end_date_2:
+        return 2
     elif post_start_date <= time <= post_end_date:
         return 2
     elif delay_start_date <= time <= delay_end_date:

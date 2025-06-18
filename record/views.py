@@ -43,7 +43,7 @@ def record(request, t):
         query_params = urlencode({'error': error_message})
         return redirect(f"{reverse('login:login')}?{query_params}")
 
-    activity_type_map = {0: 'test_pre_record', 1: 'train_record', 2: 'test_post_record', 3: 'test_delay_record'}
+    activity_type_map = {0: 'test_pre_record', 1: 'train_record', 2: 'train_record', 3: 'test_post_record', 4: 'test_delay_record'}
     current_activity_type = activity_type_map.get(t)
 
     if not current_activity_type:
@@ -127,18 +127,12 @@ def record(request, t):
             wav_filename_base = f"{session_obj.id}_{reference_audio.id}_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.wav"
             wav_content_file = ContentFile(wav_buffer.read(), name=wav_filename_base)
 
-            # --- CORRECTED Path Handling with FORWARD SLASHES ---
-            # 1. Define the path to be stored in the Database model's FileField.
-            #    Uses forward slashes explicitly.
             db_model_path = f"recording/{str(student.id)}/{wav_filename_base}"
             logger.info(f"{pid_prefix} Path to be stored in DB FileField: '{db_model_path}'")
 
-            # 2. Define the full S3 object key.
-            #    Uses forward slashes explicitly.
             s3_full_object_key = f"media/{db_model_path}"
             logger.info(f"{pid_prefix} Full S3 object key for S3 operations: '{s3_full_object_key}'")
             
-            # 3. Save to S3 using the full S3 object key.
             actual_key_on_s3 = s3_storage.save(s3_full_object_key, wav_content_file)
             logger.info(f"{pid_prefix} Actual key returned by s3_storage.save(): '{actual_key_on_s3}'")
 
@@ -148,7 +142,6 @@ def record(request, t):
                 return JsonResponse({'status': 'error', 'message': error_message_s3_save}, status=500)
             
             key_for_signing_new_url = actual_key_on_s3
-            # --- End CORRECTED Path Handling ---
 
             recording_instance = Recording(original_audio=reference_audio)
             recording_instance.recorded_audio.name = db_model_path # Store the path WITH FORWARD SLASHES and WITHOUT 'media/'
@@ -187,11 +180,8 @@ def record(request, t):
             return JsonResponse({'status': 'error', 'message': f'An unexpected error occurred: {str(e)}'}, status=500)
 
     else: # GET request
-        # ... (Your existing GET request logic remains here, ensure it's correct for 'record.html') ...
+
         logger.debug(f"{pid_prefix} GET request for /record/{t}/ by student {student.id if 'student' in locals() else 'unknown'}")
-        # ... (rest of your GET logic)
-        # Ensure settings.MEDIA_URL is correctly configured if used directly in templates.
-        # For S3, signed URLs are generally preferred over direct MEDIA_URL access.
         page_current_period_check = get_current_period()
 
         if t != page_current_period_check:

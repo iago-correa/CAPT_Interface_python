@@ -34,7 +34,7 @@ def practice(request):
     
     page_current_period_check = get_current_period()
 
-    if page_current_period_check != 1:
+    if page_current_period_check != 1 and page_current_period_check != 2:
 
         message = '現在は練習期間外のため、アクセスできません。練習期間中に再度アクセスしてください。'
         query_params = urlencode({'error': message})
@@ -86,7 +86,7 @@ def practice(request):
                 train_set.append([audio, None, None, False])
 
         shuffle(train_set)
-        return render(request, 'practice/practice.html', {'train_set': train_set, 'MEDIA_URL': settings.MEDIA_URL})
+        return render(request, 'practice/practice.html', {'train_set': train_set, 'period': page_current_period, 'MEDIA_URL': settings.MEDIA_URL})
 
     else:
         login_form = LogInStudent()

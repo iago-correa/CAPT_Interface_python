@@ -4,7 +4,7 @@
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1>録音セッション</h1>
+        <h1>録音セッション  {{ current_t|add:1 }}</h1>
     </div>
 
     <div class="alert alert-info" role="alert">
@@ -59,7 +59,7 @@
 let recorder, gumStream, audioContext;
 const csrfToken = '{{ csrf_token_value }}';
 const currentT = {{ current_t }};
-const activityMap = { 0: 'test_pre_record', 2: 'test_post_record', 3: 'test_delay_record' };
+const activityMap = {0: 'test_pre_record', 1: 'train_record', 2: 'train_record', 3: 'test_post_record', 4: 'test_delay_record'}
 const clientActivityType = activityMap[currentT] || 'unknown';
 const audioCompletionStatus = {};
 let warmupAudioUrl = null;
