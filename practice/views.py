@@ -45,33 +45,49 @@ def practice(request):
         session = Session.objects.get(id = request.session['session_id'])
 
         train_set = []
+        page_current_period = get_current_period()
 
+        # Get all reference audios
         if student.control_group: 
             reference_audios = Audio.objects.all().filter(type = "train_nat")
         else:
             reference_audios = Audio.objects.filter(type = "train_gs", student=student)
+
+        # Fetch all relevant recordings and their last activity time for the student
+        student_activities = Activity.objects.filter(
+            session__student=student,
+            type='train_record',
+            recording__original_audio__in=reference_audios
+        ).select_related('recording', 'recording__original_audio')
+
+        # Find the latest recording for each audio.
+        latest_recordings_map = {}
+        for activity in student_activities:
+            audio_id = activity.recording.original_audio.id
+            
+            if audio_id not in latest_recordings_map or activity.time > latest_recordings_map[audio_id].time:
+                latest_recordings_map[audio_id] = activity
         
+        # Build the final train_set
         for audio in reference_audios:
-            recording = Recording.objects.filter(
-                activities__session__student=student, 
-                activities__type='train_record',
-                original_audio = audio).order_by('activities__time').last()
-            if recording:
-                
+            latest_activity = latest_recordings_map.get(audio.id)
+            
+            if latest_activity:
+                recording = latest_activity.recording
                 file_key = f"{settings.MEDIA_ROOT}{recording.recorded_audio.name}"
                 recording_signed_url = get_signed_url(file_key)
                 
-                recording_time = Activity.objects.filter(recording=recording, type='train_record').order_by('-time').first().time
-                if get_current_period() == get_period_of(recording_time):
-                    checked = True
-                else:
-                    checked = False
-                train_set.append([audio, recording, recording_signed_url, checked])
+                # Check if the recording is from the current period
+                checked = (page_current_period == get_period_of(latest_activity.time))
                 
+                train_set.append([audio, recording, recording_signed_url, checked])
             else:
-                train_set.append([audio, recording, None, False])
+                # No recording found for this audio.
+                train_set.append([audio, None, None, False])
+
         shuffle(train_set)
         return render(request, 'practice/practice.html', {'train_set': train_set, 'MEDIA_URL': settings.MEDIA_URL})
+
     else:
         login_form = LogInStudent()
         return render(request, 'login/login.html', {'login_form': login_form, 'error': 'サインインしてください。'})
