@@ -32,6 +32,7 @@
                         <input type="checkbox" 
                             class="completion-checkbox form-check-input" 
                             data-audio-id-chk="{{ audio.id }}" 
+                            data-from-server="true"
                             disabled style="margin-right: 10px;"
                             checked="true"/>
                     {% else %}
@@ -124,24 +125,36 @@ function restoreAllButtons() {
         const refBtn = block.querySelector('.playReferenceBtn');
         const recBtn = block.querySelector('.recordBtn');
         const playBtn = block.querySelector('.playRecordingBtn');
-        const hasRecording = !!block.querySelector(`#recording_player_${audioId} source[src]`);
-
+                
         refBtn.disabled = false;
-        if (sessionStatus[audioId]?.listened) recBtn.disabled = false;
+        recBtn.disabled = !sessionStatus[audioId]?.listened;
+
+        const hasRecording = !!block.querySelector(`#recording_player_${audioId} source[src]`);
         if (hasRecording) {
             playBtn.disabled = false;
             playBtn.classList.remove('btn-outline-secondary', 'disabled', 'pe-none');
             playBtn.classList.add('btn-primary');
+        } else {
+            playBtn.disabled = true;
+            playBtn.classList.add('btn-outline-secondary', 'disabled', 'pe-none');
+            playBtn.classList.remove('btn-primary');
         }
     });
 }
 
 document.querySelectorAll('.audio-block').forEach(block => {
     const audioId = block.dataset.audioId;
-    sessionStatus[audioId] = { listened: false, recorded: false };
+    const chk = block.querySelector('.completion-checkbox');
+    const recBtn = block.querySelector('.recordBtn');
+
+    if (chk.checked) {
+        recBtn.disabled = false;
+        sessionStatus[audioId] = { listened: true, recorded: true };
+    } else {
+        sessionStatus[audioId] = { listened: false, recorded: false };
+    }
 
     const refBtn = block.querySelector('.playReferenceBtn');
-    const recBtn = block.querySelector('.recordBtn');
     const playBtn = block.querySelector('.playRecordingBtn');
 
     if (block.querySelector(`#recording_player_${audioId} source[src]`)) {
