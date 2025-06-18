@@ -6,15 +6,18 @@
 
     <div id="train_complete_msg" class="alert alert-success" role="alert" style="visibility: hidden; display: none">
         <p class="mb-0"> この練習セッションは既に完了しています。</p>
-        <p class="mb-0"> 練習続きたい場合は自由にページそのままに利用しても大丈夫です。</p>
-        <p class="mb-0"> 終了の場合は、「セッション完了」で終了してください。終了した後でも、またログインできて練習ページ利用できます。</p>
+        <p class="mb-0"> 引き続きこのページで練習を続けたい場合は、そのままご利用いただけます。</p>
+        <p class="mb-0"> 練習を終了する場合は、「セッション終了」ボタンを押してください。セッションを終了した後でも、期間中であれば再度ログインして練習を続けることが可能です。</p>
     </div>
 
     <div class="alert alert-info" role="alert">
         <h4 class="alert-heading">練習の進め方</h4>
         <p class="mb-0">まずお手本の音声（「再生」ボタン）を聞いてから、ご自身の発音を録音（「録音開始」ボタン）してください。録音した音声は「録音を再生」ボタンで確認できます。</p>
         <hr>
-        <p class="mb-0">お手本の再生、ご自身の録音、録音の再生は、何度でも繰り返し行うことができます。ただし、各課題で最低一回ずつお手本を聞き、ご自身の音声を録音すると、「セッション完了」ボタンが有効になります。</p>
+        <p class="mb-0">お手本の再生、ご自身の録音、録音の再生は、何度でも繰り返し行うことができます。ただし、各課題を完了させるには、最低一回ずつお手本を聞き、ご自身の音声を録音する必要があります。</p>
+        <p class="mb-0">完了した課題には、チェックマークが表示されます。すべての課題を完了させると、「セッション終了」ボタンが押せるようになり、セッションを終了することができます。</p>
+        <p class="mb-0">すべての課題を完了した後でも、すぐにセッションを終了せず、続けて練習していただいて構いません。また、期間中であれば、セッションを終了した後でも再度ログインし、練習ページを利用することが可能です。</p>
+        <p class="mb-0">一度ページを閉じて再度アクセスすることで、途中から練習を再開できます。</p>
         <hr>
         <p class="mb-0">問題や不具合が発生した場合は、以下のメールアドレスまでご連絡ください。</p>
         <p class="mb-0 text-decoration-underline">i.lourencocorrea.747@stn.nitech.ac.jp</p>
@@ -62,7 +65,7 @@
     {% endfor %}
 
     <div class="mt-4 mb-5 d-grid">
-        <button id="completeTrainingBtn" class="btn btn-lg btn-outline-success disabled pe-none" disabled>セッション完了</button>
+        <button id="completeTrainingBtn" class="btn btn-lg btn-outline-success disabled pe-none" disabled>セッション終了</button>
     </div>
 </div>
 
