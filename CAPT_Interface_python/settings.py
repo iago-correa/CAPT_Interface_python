@@ -14,6 +14,12 @@ from pathlib import Path
 from decouple import config, Csv
 import datetime
 import os
+import sys
+
+print("--- DEBUG: Listing all environment variables for Gunicorn ---", file=sys.stderr)
+for key, value in sorted(os.environ.items()):
+    print(f"{key} = {value}", file=sys.stderr)
+print("--- END DEBUG ---", file=sys.stderr)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
