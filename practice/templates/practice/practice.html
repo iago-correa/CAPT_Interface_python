@@ -2,7 +2,7 @@
 {% load static %}
 {% block content %}
 <div class="container mt-4">
-    <h1>練習セッション {{ period }}</h1>
+    <h1>練習セッション {{ period|add:1 }}</h1>
 
     <div id="train_complete_msg" class="alert alert-success" role="alert" style="visibility: hidden; display: none">
         <p class="mb-0"> この練習セッションは既に完了しています。</p>
@@ -28,19 +28,13 @@
         <div class="audio-block card mb-3" data-audio-id="{{ audio.id }}">
             <div class="card-body">
                 <p class="mb-3">
-                    {% if checked %} 
-                        <input type="checkbox" 
-                            class="completion-checkbox form-check-input" 
-                            data-audio-id-chk="{{ audio.id }}" 
-                            data-from-server="true"
-                            disabled style="margin-right: 10px;"
-                            checked="true"/>
-                    {% else %}
-                        <input type="checkbox" 
-                            class="completion-checkbox form-check-input" 
-                            data-audio-id-chk="{{ audio.id }}" 
-                            disabled style="margin-right: 10px;"/>
-                    {% endif %}
+                    <input type="checkbox" 
+                           class="completion-checkbox form-check-input" 
+                           data-audio-id-chk="{{ audio.id }}" 
+                           data-is-checked="{{ checked|yesno:'true,false' }}"
+                           style="margin-right: 10px;"
+                           {% if checked %}checked{% endif %} 
+                           disabled />
                     {{ audio.transcript }}
                 </p>
                 <audio id="audio_player_{{ audio.id }}">
@@ -148,12 +142,16 @@ document.querySelectorAll('.audio-block').forEach(block => {
     const chk = block.querySelector('.completion-checkbox');
     const recBtn = block.querySelector('.recordBtn');
 
-    if (chk.checked) {
-        recBtn.disabled = false;
+    const isCheckedFromServer = chk.dataset.isChecked === 'true';
+
+    if (isCheckedFromServer) {
         sessionStatus[audioId] = { listened: true, recorded: true };
     } else {
         sessionStatus[audioId] = { listened: false, recorded: false };
     }
+
+    chk.checked = sessionStatus[audioId].listened && sessionStatus[audioId].recorded;
+    recBtn.disabled = !sessionStatus[audioId].listened;
 
     const refBtn = block.querySelector('.playReferenceBtn');
     const playBtn = block.querySelector('.playRecordingBtn');
