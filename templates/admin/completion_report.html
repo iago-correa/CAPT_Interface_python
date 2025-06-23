@@ -16,17 +16,17 @@
       <table>
         <thead>
           <tr>
-            <th>Audio Type to Complete</th>
-            <th>Number of Students Completed</th>
-            <th>Total Audios Required</th>
+            <th>Group</th>
+            <th>Number of students completed</th>
+            <th>Total number of students</th>
           </tr>
         </thead>
         <tbody>
-          {% for audio_type, data in period_report.counts.items %}
+          {% for group, data in period_report.counts.items %}
             <tr>
-              <td><strong>{{ audio_type }}</strong></td>
+              <td><strong>{{ group }}</strong></td>
               <td>{{ data.completed }}</td>
-              <td>{{ data.total_required }}</td>
+              <td>{{ data.students_total }}</td>
             </tr>
           {% empty %}
             <tr><td colspan="3">No report types configured for this period.</td></tr>
