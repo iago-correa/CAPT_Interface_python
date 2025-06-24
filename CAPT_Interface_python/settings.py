@@ -150,7 +150,10 @@ ADMIN_URL_PATH = config('ADMIN_URL_PATH')
 
 # Experiment Period Dates (Year, Month, Day, Hour, Minute, Second)
 def tuple_of_ints(value):
-        return tuple(int(x) for x in value.split(','))
+    return tuple(int(x) for x in value.split(','))
+
+def list_of_ints(value):
+    return [int(x) for x in value.split(',')]
 
 PERIOD_DATES = {
     'PRE_START':        config('PERIOD_1_PRE_BEGIN', cast=tuple_of_ints),
@@ -178,3 +181,5 @@ MEDIA_ROOT = 'media/'
 
 STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
 STATIC_ROOT = 'static/'
+
+IGNORED_STUDENTS = config('IGNORED_STUDENTS', cast=list_of_ints)

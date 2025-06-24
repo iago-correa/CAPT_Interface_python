@@ -138,60 +138,71 @@ class StudentDataExplorerAdmin(admin.ModelAdmin):
 @admin.register(StudentCompletionReport)
 class StudentCompletionReportAdmin(admin.ModelAdmin):
     def changelist_view(self, request, extra_context=None):
+
         report_data = []
 
-        ignored_ids = [0, 67]
+        ignored_ids = settings.IGNORED_STUDENTS
 
-        num_students = Student.objects.exclude(id__in=ignored_ids).values('control_group').annotate(total=Count('control_group')).order_by()
+        num_students = Student.objects.exclude(
+            id__in=ignored_ids
+        ).values(
+            'control_group'
+        ).annotate(
+            total=Count('id')
+        ).order_by(
+            'control_group'
+        )
+
+        completion_target = 20
 
         for period in PERIODS_CONFIG:
+
+            period_counts = {
+                'Control group': {
+                    'completed': 0,
+                    'students_total': num_students[True]['total']
+                }, 
+                'Experimental group': {
+                    'completed': 0,
+                    'students_total': num_students[False]['total']
+                }
+            }
+
             period_name = period['name']
             start_time = period['start_time'].replace(tzinfo=None)
             end_time = period['end_time'].replace(tzinfo=None)
-            
-            period_counts = {}
-            
-            if len(period['count_types']) == 1:
-                
-                audio_type = period['count_types'][0]
-                        
-                # Number of audios in the DB.
-                completion_target = 20
 
-                num_students_completed_control = 0
-                num_students_completed_experiment = 0
-                
+            audio_type = period['count_types']
+            completion_target = 20
+            
+            completed_students_count = Activity.objects.filter(
+                time__range=(start_time, end_time),
+                recording__isnull=False,
+                recording__original_audio__type__in=audio_type
+            ).values(
+                'session__student',
+                'session__student__control_group'
+            ).exclude(
+                session__student__id__in=ignored_ids
+            ).annotate(
+                unique_recordings=Count('recording__original_audio', distinct=True)
+            ).filter(
+                unique_recordings=completion_target
+            ).values(
+                'session__student__control_group'  
+            ).annotate(
+                student_count=Count('session__student', distinct=True)
+            ).order_by('session__student__control_group')
 
-                if completion_target > 0:
+            for group in completed_students_count:
+                if(group['session__student__control_group'] == True):
                     
-                    num_students_completed = Activity.objects.filter(
-                        time__range=(start_time, end_time),
-                        recording__isnull=False,
-                        recording__original_audio__type=audio_type,
-                    ).values(
-                        'session__student__control_group'
-                    ).annotate(
-                        unique_recordings=Count('session__student__control_group', distinct=True)
-                    )
-                    # .filter(
-                    #     unique_recordings__gte=completion_target
-                    # )
+                    period_counts['Control group']['completed'] = group['student_count']
 
-                period_counts['Control group'] = {
-                    'completed': num_students_completed,
-                    'students_total': num_students[True]['total'],
-                }
-            
-                period_counts['Experimental group'] = {
-                    'completed': num_students_completed,
-                    'students_total': num_students[False]['total'],
-                }
-                
-            else:
-            
-                print('a')
-                ##
-            
+                elif(group['session__student__control_group'] == False):
+
+                    period_counts['Experimental group']['completed'] = group['student_count']
+
             report_data.append({
                 'name': period_name,
                 'counts': period_counts,
@@ -212,7 +223,7 @@ class StudentCompletionFilter(admin.SimpleListFilter):
     def lookups(self, request, model_admin):
         """Dynamically generates a simpler list of filter options."""
         options = []
-        # We now generate one "completed" and "not completed" link per period.
+        # Generate one "completed" and "not completed" link per period.
         for i, period in enumerate(PERIODS_CONFIG):
             options.append((f'{i}-completed', f"Completed: {period['name']}"))
             options.append((f'{i}-not_completed', f"Not Completed: {period['name']}"))
@@ -241,7 +252,7 @@ class StudentCompletionFilter(admin.SimpleListFilter):
 
         # --- Conditional Logic Based on the Selected Period ---
 
-        if period_index in [0, 3, 4]:  # Logic for Pre, Post, and Delayed periods
+        if period_index in [0, 3, 4]:  # Logic for pre, post, and delayed periods
             audio_type = 'test_nat'
             completion_target = total_audio_counts.get(audio_type, 0)
             
