@@ -165,6 +165,10 @@ class StudentCompletionReportAdmin(admin.ModelAdmin):
                 'Experimental group': {
                     'completed': 0,
                     'students_total': num_students[False]['total']
+                },
+                'Total': {
+                    'completed': 0,
+                    'students_total': num_students[True]['total'] + num_students[False]['total']
                 }
             }
 
@@ -195,6 +199,7 @@ class StudentCompletionReportAdmin(admin.ModelAdmin):
             ).order_by('session__student__control_group')
 
             for group in completed_students_count:
+
                 if(group['session__student__control_group'] == True):
                     
                     period_counts['Control group']['completed'] = group['student_count']
@@ -202,6 +207,9 @@ class StudentCompletionReportAdmin(admin.ModelAdmin):
                 elif(group['session__student__control_group'] == False):
 
                     period_counts['Experimental group']['completed'] = group['student_count']
+
+            if completed_students_count:
+                period_counts['Total']['completed'] = completed_students_count[True]['student_count'] + completed_students_count[False]['student_count']
 
             report_data.append({
                 'name': period_name,
