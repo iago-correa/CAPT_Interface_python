@@ -22,15 +22,37 @@
           </tr>
         </thead>
         <tbody>
-          {% for group, data in period_report.counts.items %}
-            <tr>
-              <td><strong>{{ group }}</strong></td>
-              <td>{{ data.completed }}</td>
-              <td>{{ data.students_total }}</td>
-            </tr>
-          {% empty %}
-            <tr><td colspan="3">No report types configured for this period.</td></tr>
-          {% endfor %}
+          <tr>
+            <td><strong>Control group</strong></td>
+            <td>{{ period_report.counts.control_completed }}</td>
+            <td>{{ period_report.counts.control_total }}</td>
+          </tr>
+          <tr>
+            <td><strong>Experimental group</strong></td>
+            <td>{{ period_report.counts.experimental_completed }}</td>
+            <td>{{ period_report.counts.experimental_total }}</td>
+          </tr>
+          <tr>
+            <td><strong>Total</strong></td>
+            <td>{{ period_report.counts.total_completed }}</td>
+            <td>{{ period_report.counts.total_total }}</td>
+          </tr>
+
+          <tr>
+            <td><strong>Control group (retained)</strong></td>
+            <td>{{ period_report.retention.control_completed }}</td>
+            <td>{{ period_report.retention.control_total }}</td>
+          </tr>
+          <tr>
+            <td><strong>Experimental group (retained)</strong></td>
+            <td>{{ period_report.retention.experimental_completed }}</td>
+            <td>{{ period_report.retention.experimental_total }}</td>
+          </tr>
+          <tr>
+            <td><strong>Total (retained)</strong></td>
+            <td>{{ period_report.retention.total_completed }}</td>
+            <td>{{ period_report.retention.total_total }}</td>
+          </tr>
         </tbody>
       </table>
     </div>

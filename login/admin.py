@@ -138,91 +138,101 @@ class StudentDataExplorerAdmin(admin.ModelAdmin):
 @admin.register(StudentCompletionReport)
 class StudentCompletionReportAdmin(admin.ModelAdmin):
     def changelist_view(self, request, extra_context=None):
-
         report_data = []
 
         ignored_ids = settings.IGNORED_STUDENTS
 
         num_students = Student.objects.exclude(
             id__in=ignored_ids
-        ).values(
-            'control_group'
-        ).annotate(
-            total=Count('id')
-        ).order_by(
-            'control_group'
-        )
+        ).values('control_group').annotate(total=Count('id'))
 
-        completion_target = 20
+        control_total = next((x['total'] for x in num_students if x['control_group']), 0)
+        experimental_total = next((x['total'] for x in num_students if not x['control_group']), 0)
 
-        for period in PERIODS_CONFIG:
+        previous_control_ids = set()
+        previous_experimental_ids = set()
+        previous_total_ids = set()
 
-            period_counts = {
-                'Control group': {
-                    'completed': 0,
-                    'students_total': num_students[True]['total']
-                }, 
-                'Experimental group': {
-                    'completed': 0,
-                    'students_total': num_students[False]['total']
-                },
-                'Total': {
-                    'completed': 0,
-                    'students_total': num_students[True]['total'] + num_students[False]['total']
-                }
-            }
-
+        for i, period in enumerate(PERIODS_CONFIG):
             period_name = period['name']
             start_time = period['start_time'].replace(tzinfo=None)
             end_time = period['end_time'].replace(tzinfo=None)
-
             audio_type = period['count_types']
             completion_target = 20
-            
-            completed_students_count = Activity.objects.filter(
+
+            # Fetch current period completions
+            completions_qs = Activity.objects.filter(
                 time__range=(start_time, end_time),
                 recording__isnull=False,
                 recording__original_audio__type__in=audio_type
+            ).exclude(
+                session__student__id__in=ignored_ids
             ).values(
                 'session__student',
                 'session__student__control_group'
-            ).exclude(
-                session__student__id__in=ignored_ids
             ).annotate(
                 unique_recordings=Count('recording__original_audio', distinct=True)
             ).filter(
                 unique_recordings=completion_target
-            ).values(
-                'session__student__control_group'  
-            ).annotate(
-                student_count=Count('session__student', distinct=True)
-            ).order_by('session__student__control_group')
+            )
 
-            for group in completed_students_count:
+            control_ids = set()
+            experimental_ids = set()
 
-                if(group['session__student__control_group'] == True):
-                    
-                    period_counts['Control group']['completed'] = group['student_count']
+            for entry in completions_qs:
+                student_id = entry['session__student']
+                if entry['session__student__control_group']:
+                    control_ids.add(student_id)
+                else:
+                    experimental_ids.add(student_id)
 
-                elif(group['session__student__control_group'] == False):
+            total_ids = control_ids | experimental_ids
 
-                    period_counts['Experimental group']['completed'] = group['student_count']
+            period_counts = {
+                'control_completed': len(control_ids),
+                'control_total': control_total,
+                'experimental_completed': len(experimental_ids),
+                'experimental_total': experimental_total,
+                'total_completed': len(total_ids),
+                'total_total': control_total + experimental_total,
+            }
 
-            if completed_students_count:
-                period_counts['Total']['completed'] = completed_students_count[True]['student_count'] + completed_students_count[False]['student_count']
+            if i == 0:
+                retained_control = control_ids
+                retained_experimental = experimental_ids
+                retained_total = total_ids
+            else:
+                retained_control = control_ids & previous_control_ids
+                retained_experimental = experimental_ids & previous_experimental_ids
+                retained_total = total_ids & previous_total_ids
+
+            retention_counts = {
+                'control_completed': len(retained_control),
+                'control_total': len(previous_control_ids),
+                'experimental_completed': len(retained_experimental),
+                'experimental_total': len(previous_experimental_ids),
+                'total_completed': len(retained_total),
+                'total_total': len(previous_total_ids),
+            }
+
+            previous_control_ids = retained_control
+            previous_experimental_ids = retained_experimental
+            previous_total_ids = retained_total
 
             report_data.append({
                 'name': period_name,
                 'counts': period_counts,
+                'retention': retention_counts,
             })
-            
+
         context = {
             **self.admin_site.each_context(request),
             'title': 'Student Completion Report',
             'report_data': report_data,
         }
-        
+
         return TemplateResponse(request, "admin/completion_report.html", context)
+
 
 class StudentCompletionFilter(admin.SimpleListFilter):
     title = 'Completion Status by Period'
