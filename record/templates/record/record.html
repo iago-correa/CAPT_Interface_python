@@ -7,15 +7,28 @@
         <h1>録音セッション  {{ current_t|add:1 }}</h1>
     </div>
 
-    <div class="alert alert-info" role="alert">
-        <h4 class="alert-heading">録音の進め方</h4>
-        <p>この録音セッションでは、一度録音すると聞き直しや再録音はできません。ページ上部の「マイクテスト」をご利用になり、マイクが正しく機能するか、録音される音声が十分な音量であるかをご確認ください。</p>
-        <hr>
-        <p class="mb-0">全ての課題の録音が完了すると、「セッション完了」ボタンが有効になります。全ての録音が終わりましたら、ページ下部の「セッション完了」ボタンを押してください。</p>
-        <hr>
-        <p class="mb-0">問題や不具合が発生した場合は、以下のメールアドレスまでご連絡ください。</p>
-        <p class="mb-0 text-decoration-underline">i.lourencocorrea.747@stn.nitech.ac.jp</p>
-    </div>
+    <div class="accordion mb-3">
+        <details class="accordion-item">
+          <summary class="accordion-button">
+            <div class="accordion-header">
+                <h4>録音の進め方</h4>
+            </div>
+          </summary>
+      
+          <div class="accordion-body">
+                <p>この録音セッションでは、一度録音すると聞き直しや再録音はできません。ページ上部の「マイクテスト」をご利用になり、マイクが正しく機能するか、録音される音声が十分な音量であるかをご確認ください。</p>
+                <hr>
+                <p class="mb-0">全ての課題の録音が完了すると、「セッション完了」ボタンが有効になります。全ての録音が終わりましたら、ページ下部の「セッション完了」ボタンを押してください。</p>
+                <hr>
+                <p class="mb-0">セッションの途中で問題が発生した場合は、一度ページを閉じて再度アクセスすると、途中から録音を再開できます。ただし、「セッション完了」ボタンを押した後は、そのセッションに再度アクセスすることはできなくなります。</p>
+                <p class="mb-0">前回のセッションで、iPhoneやiPadなどAppleの端末で問題が報告されています。同様の端末をご利用の方で録音に問題が発生した場合は、PCなど別の端末からのアクセスをお試しください。</p>
+                <hr>
+                <p class="mb-0">問題や不具合が発生した場合は、以下のメールアドレスまでご連絡ください。</p>
+                <p class="mb-0 text-decoration-underline">i.lourencocorrea.747@stn.nitech.ac.jp</p>
+                <p class="mb-0">メールご連絡の際は、学生番号、エラーの内容と発生した状況をできるだけ詳しくお知らせください。</p>
+          </div>
+        </details>
+      </div>
 
     <div class="audio-block card mb-3" data-audio-id="rec_warmup">
         <div class="card-body">
