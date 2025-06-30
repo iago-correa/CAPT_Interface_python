@@ -4,7 +4,7 @@ from django.template.response import TemplateResponse
 from django.utils import timezone
 from django.conf import settings
 
-from .models import Student, Session, StudentCompletionReport, StudentDataExplorer
+from .models import Student, Session, Rater, StudentCompletionReport, StudentDataExplorer
 from practice.models import Activity, Audio
 
 import datetime
@@ -331,6 +331,11 @@ class StudentAdmin(admin.ModelAdmin):
     list_filter = ('control_group', StudentCompletionFilter)
 
 admin.site.register(Student, StudentAdmin)
+
+class RaterAdmin(admin.ModelAdmin):
+    list_display = ('id', 'rater_id')
+
+admin.site.register(Rater, RaterAdmin)
 
 class SessionAdmin(admin.ModelAdmin):
     list_display = ('id', 'student', 'start_time', 'end_time') 

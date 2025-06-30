@@ -7,16 +7,32 @@ class Student(models.Model):
     def __str__(self):
         return self.student_id
 
+class Rater(models.Model):
+    rater_id = models.CharField(max_length=10, unique=True)
+    password = models.CharField(max_length=20)
+
+    def __str__(self):
+        return self.rater_id
+
 class Session(models.Model):
     start_time = models.DateTimeField(auto_now_add=True)
     end_time = models.DateTimeField(auto_now=True)
 
     student = models.ForeignKey(
         Student, 
-        blank=False, 
-        null=False, 
-        on_delete=models.CASCADE, 
-        related_name='sessions')
+        blank = True, 
+        null = True, 
+        on_delete = models.CASCADE, 
+        related_name = 'sessions'
+    )
+    
+    rater = models.ForeignKey(
+        Rater,
+        blank = True,
+        null = True,
+        on_delete = models.CASCADE,
+        related_name = 'sessions'
+    )
     
     def __str__(self):
         return f"{self.student.student_id}: {self.start_time} - {self.end_time}"

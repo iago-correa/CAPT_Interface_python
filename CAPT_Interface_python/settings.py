@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'login',
     'practice',
     'record',
+    'evaluate',
 ]
 
 MIDDLEWARE = [

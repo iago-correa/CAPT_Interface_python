@@ -24,6 +24,7 @@ urlpatterns = [
     path('', include('login.urls')),
     path('practice/', include('practice.urls')),
     path('record/', include('record.urls')),
+    path('evaluate/', include('evaluate.urls'))
 ]
 
 if settings.DEBUG:
