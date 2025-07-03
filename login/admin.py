@@ -326,6 +326,27 @@ class StudentCompletionFilter(admin.SimpleListFilter):
             
         return queryset
 
+class SessionSourceFilter(admin.SimpleListFilter):
+    
+    title = 'Source User'
+    parameter_name = 'user'
+    
+    def lookups(self, request, model_admin):
+        return [('rater', "Raters"), ('student', "Students")]
+    
+    def queryset(self, request, queryset):
+    
+        if self.value() == 'student':
+            return queryset.filter(
+                student__isnull = False
+            )
+
+        if self.value() == 'rater':
+            return queryset.filter(
+                rater__isnull = False
+            )
+        
+
 class StudentAdmin(admin.ModelAdmin):
     list_display = ('id', 'student_id', 'control_group')
     list_filter = ('control_group', StudentCompletionFilter)
@@ -338,6 +359,7 @@ class RaterAdmin(admin.ModelAdmin):
 admin.site.register(Rater, RaterAdmin)
 
 class SessionAdmin(admin.ModelAdmin):
-    list_display = ('id', 'student', 'start_time', 'end_time') 
+    list_display = ('id', 'student', 'rater', 'start_time', 'end_time') 
+    list_filter = (SessionSourceFilter, 'student', 'rater')
 
 admin.site.register(Session, SessionAdmin)
