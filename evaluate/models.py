@@ -1,15 +1,10 @@
 from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
 from record.models import Recording
 
 class Evaluation(models.Model):
     
-    SCORE_CHOICES = [
-        (1, 'Bad'),
-        (2, 'Poor'),
-        (3, 'Fair'),
-        (4, 'Good'),
-        (5, 'Excellent'),
-    ]
+    SCORE_CHOICES = [0,1,2,3,4,5,6,7,8,9]
     
     session = models.ForeignKey("login.Session", 
                                 blank=False,
@@ -20,7 +15,7 @@ class Evaluation(models.Model):
                               null=True,
                               on_delete=models.CASCADE, 
                               related_name="evaluations")
-    score = models.IntegerField(choices=SCORE_CHOICES, default=1)
+    score = models.IntegerField(default=-1, validators=[MinValueValidator(0), MaxValueValidator(9)])
     problem = models.BooleanField(default=False)
     
     def __str__(self):

@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, reverse
 from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponse
 from django.db.models import Count, Q
 from django.utils import timezone
 from django.conf import settings
@@ -7,6 +8,8 @@ from django.conf import settings
 from login.utils import get_signed_url
 from login.models import Student, Session 
 from practice.models import Activity
+from record.models import Recording
+from .models import Evaluation
 
 from urllib.parse import urlencode
 import datetime
@@ -189,5 +192,25 @@ def evaluate(request):
             'evaluation_set': evaluation_set, 
             'csrf_token_value': request.META.get('CSRF_COOKIE')
         })
+    
+    elif request.method == "POST":
         
+        session = Session.objects.get(id = request.session['session_id'])
         
+        for key in request.POST:
+            if key.startswith('score-radio'):
+                recording_id = key.split('-')[-1]
+                recording = Recording.objects.get(id = recording_id)
+                
+                evualuation_score = request.POST[key]
+                evaluation_problem = request.POST.get('problem-check-'+str(recording_id), False)
+        
+                Evaluation.objects.update_or_create(
+                    session=session,
+                    recording=recording,
+                    score=evualuation_score,
+                    problem=evaluation_problem
+                )
+        
+        return redirect('evaluate:evaluate')
+    

@@ -16,42 +16,65 @@
 
 
     <div class="mt-4 mb-5 d-grid">
-        {% for recording, recording_signed_url in evaluation_set %}
-        
-            {% if forloop.first %}{% csrf_token %}{% endif %}
+        <form method="post" action="{% url 'evaluate:evaluate' %}" class="form-check" id="score-radio-form">
+            {% for recording, recording_signed_url in evaluation_set %}
+            
+                {% if forloop.first %}{% csrf_token %}{% endif %}
 
-            <div class="audio-block card mb-3" data-audio-id="{{ recording.id }}">
+                <div class="audio-block card mb-3" data-audio-id="{{ recording.id }}">
 
-                <div class="card-body">
-
-                    <audio controls class="mb-3" id="recording_player_{{ recording.id }}">
-                        {% if recording_signed_url %}
-                            <source src="{{ recording_signed_url }}" type="audio/wav">
-                        {% endif %}
-                    </audio>
-
-                    <form class="form-check" id="score-radio-form">
-                        <div class="row">
-                            <div class="col-6 text-start">Impossible to understand</div>
-                            <div class="col-6 text-end">Completely comprehensible</div>
+                    <div class="card-body">
+                        
+                        <div class="row align-items-center">
+                            <center><p>{{ recording.recorded_audio }}</p></center>
+                            <audio controls class="mb-3 col-7" id="recording_player_{{ recording.id }}" style="margin: 0 auto; display: block;">
+                                {% if recording_signed_url %}
+                                    <source src="{{ recording_signed_url }}" type="audio/wav">
+                                {% endif %}
+                            </audio>
+                            <div class="mb-3 col-4">
+                                <input class="form-check-input" type="checkbox" value="True" name="problem-check-{{ recording.id }}" id="problem-check-{{ recording.id }}">
+                                <label class="form-check-label" for="problem-check-{{ recording.id }}">
+                                    Problematic file
+                                </label>
+                            </div>
                         </div>
-                        <div class="row">
-                            {% for score in scores %}
-                                <div class="form-check col">
-                                    <input class="form-check-input" type="radio" name="score-radio" id="score-radio-{{ score }}" value="{{ score }}">
-                                    <label class="form-check-label" for="score-radio-{{ score }}">
-                                        {{ score }}
-                                    </label>
+
+                        <div class="row align-items-center">
+                            <div class="col-md-2 col-12 text-center text-md-start mb-3 mb-md-0 side-label">
+                                Impossible to understand
+                            </div>
+            
+                            <div class="col-md-8 col-12">
+                                <div class="row mb-3">
+                                    {% for score in scores %}
+                                    <div class="col px-0">
+                                        <div class="d-flex flex-column">
+                                            <label class="form-check-label score-label text-center" for="score-radio-{{ recording.id }}-{{ score }}">
+                                                {{ score }}
+                                            </label>
+                                            <input class="form-check-input mx-auto" type="radio" name="score-radio-{{ recording.id }}" id="score-radio-{{ recording.id }}-{{ score }}" value="{{ score }}">
+                                        </div>
+                                    </div>
+                                    {% endfor %}
                                 </div>
-                            {% endfor %}
+                            </div>
+                            <div class="col-md-2 col-12 text-center text-md-end mt-3 mt-md-0 side-label">
+                                Completely comprehensible
+                            </div>
                         </div>
-                    </form>
+                    
+                    </div>
 
                 </div>
+        
+            {% endfor %}
 
+            <div class="d-grid">
+                <button type="submit" name="evaluate_button" class="btn btn-primary btn-block">Next</button> 
             </div>
 
-        {% endfor %}
+        </form>    
 
     </div>  
 

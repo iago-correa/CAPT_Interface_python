@@ -35,7 +35,10 @@ class Session(models.Model):
     )
     
     def __str__(self):
-        return f"{self.student.student_id}: {self.start_time} - {self.end_time}"
+        if self.student is None:
+            return f"{self.rater.rater_id}: {self.start_time} - {self.end_time}"
+        else:
+            return f"{self.student.student_id}: {self.start_time} - {self.end_time}"
     
 class StudentCompletionReport(Student):
     class Meta:
