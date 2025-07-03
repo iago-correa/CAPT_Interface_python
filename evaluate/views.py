@@ -168,17 +168,28 @@ def evaluate(request):
     
     if request.method == 'GET':
         
+        evaluation_set = []
+        
         # students_to_evaluate = get_students_to_evaluate()
         students_to_evaluate = Student.objects.exclude(
             id__in=settings.IGNORED_STUDENTS
         )
         
-        evaluation_set = []
+        # All the evaluations of the current rater
+        completed_evaluations = Evaluation.objects.filter(
+            session__rater = rater
+        )
+        num_completed = len(completed_evaluations)
         
+        # Select all recordings for the experiment students
         activities = Activity.objects.filter(
             session__student__in=students_to_evaluate,
             type__in=['test_pre_record', 'test_post_record', 'test_delay_record']
         ).select_related('recording')
+        num_total = len(activities)
+        
+        # From all the recordings, pick the ones not evaluated
+        activities = activities.exclude(recording__in=completed_evaluations.values_list('recording', flat=True))
         
         for activity in activities:
             recording = activity.recording
@@ -187,8 +198,13 @@ def evaluate(request):
             
             evaluation_set.append([recording, recording_signed_url])
         
+        completion = int(100*num_completed/num_total)
+        
         return render(request, 'evaluate/evaluate.html', {
             'scores': range(10),
+            'num_completed': num_completed,
+            'num_total': num_total,
+            'completion': completion,
             'evaluation_set': evaluation_set, 
             'csrf_token_value': request.META.get('CSRF_COOKIE')
         })
@@ -205,11 +221,12 @@ def evaluate(request):
                 evualuation_score = request.POST[key]
                 evaluation_problem = request.POST.get('problem-check-'+str(recording_id), False)
         
+        
                 Evaluation.objects.update_or_create(
-                    session=session,
-                    recording=recording,
-                    score=evualuation_score,
-                    problem=evaluation_problem
+                    defaults={'session': session,
+                            'score': evualuation_score,
+                            'problem': evaluation_problem}, 
+                    recording=recording
                 )
         
         return redirect('evaluate:evaluate')

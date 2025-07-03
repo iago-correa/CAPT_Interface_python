@@ -10,13 +10,17 @@
         <a class="btn btn-danger position-absolute top-0 end-0" href="{% url 'login:evaluation_logout'%}" role="button">Logout</a>
     </div>
 
-    <div id="completion-status" class="alert alert-success" role="alert" style="visibility: hidden; display: none">
-        <p class="mb-0"> この練習セッションは既に完了しています。</p>
-    </div>
-
-
     <div class="mt-4 mb-5 d-grid">
+        
         <form method="post" action="{% url 'evaluate:evaluate' %}" class="form-check" id="score-radio-form">
+
+            <p>Completed recordings:</p>
+            <div class="progress mb-3">
+                <div class="progress-bar bg-success" role="progressbar" style="width: {{ completion }}%" aria-valuenow="{{ num_completed }}" aria-valuemin="0" aria-valuemax="{{ num_total }}">
+                    {{ num_completed }}/{{ num_total }}
+                </div>
+            </div>
+
             {% for recording, recording_signed_url in evaluation_set %}
             
                 {% if forloop.first %}{% csrf_token %}{% endif %}

@@ -13,7 +13,8 @@ class Evaluation(models.Model):
     recording = models.ForeignKey(Recording, 
                               blank=True,
                               null=True,
-                              on_delete=models.CASCADE, 
+                              on_delete=models.CASCADE,
+                              unique=True,
                               related_name="evaluations")
     score = models.IntegerField(default=-1, validators=[MinValueValidator(0), MaxValueValidator(9)])
     problem = models.BooleanField(default=False)
