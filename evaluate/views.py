@@ -58,15 +58,12 @@ except (AttributeError, TypeError):
     # Fallback if settings.PERIOD_DATES is not configured, prevents crashing
     PERIODS_CONFIG = []
 
-def get_students_to_evaluate(target_period=4):
+def get_students_to_evaluate(target_period=5):
     
-    report_data = []
-
     ignored_ids = settings.IGNORED_STUDENTS
-
-    previous_control_ids = set()
-    previous_experimental_ids = set()
-    previous_total_ids = set()
+    
+    previous_students = set()
+    message = ""
 
     for i, period in enumerate(PERIODS_CONFIG):
         period_name = period['name']
@@ -75,11 +72,13 @@ def get_students_to_evaluate(target_period=4):
         audio_type = period['count_types']
         completion_target = 20
 
+        completed_students = set()
+
         # Fetch current period completions
         completions_qs = Activity.objects.filter(
             time__range=(start_time, end_time),
             recording__isnull=False,
-            recording__original_audio__type__in=audio_type
+            recording__original_audio__type__in=audio_type,
         ).exclude(
             session__student__id__in=ignored_ids
         ).values(
@@ -90,63 +89,20 @@ def get_students_to_evaluate(target_period=4):
         ).filter(
             unique_recordings=completion_target
         )
-
-        control_ids = set()
-        experimental_ids = set()
+        
+        if i > 0:
+            completions_qs = completions_qs.filter(session__student__id__in=previous_students)
 
         for entry in completions_qs:
             student_id = entry['session__student']
-            if entry['session__student__control_group']:
-                control_ids.add(student_id)
-            else:
-                experimental_ids.add(student_id)
+            completed_students.add(student_id)
+        
+        message += f"{period_name}: {len(completed_students)} students."
 
-        total_ids = control_ids | experimental_ids
-
-        period_counts = {
-            'control_completed': len(control_ids),
-            'control_total': control_total,
-            'experimental_completed': len(experimental_ids),
-            'experimental_total': experimental_total,
-            'total_completed': len(total_ids),
-            'total_total': control_total + experimental_total,
-        }
-
-        if i == 0:
-            retained_control = control_ids
-            retained_experimental = experimental_ids
-            retained_total = total_ids
-        else:
-            retained_control = control_ids & previous_control_ids
-            retained_experimental = experimental_ids & previous_experimental_ids
-            retained_total = total_ids & previous_total_ids
-
-        retention_counts = {
-            'control_completed': len(retained_control),
-            'control_total': len(previous_control_ids),
-            'experimental_completed': len(retained_experimental),
-            'experimental_total': len(previous_experimental_ids),
-            'total_completed': len(retained_total),
-            'total_total': len(previous_total_ids),
-        }
-
-        previous_control_ids = retained_control
-        previous_experimental_ids = retained_experimental
-        previous_total_ids = retained_total
-
-        report_data.append({
-            'name': period_name,
-            'counts': period_counts,
-            'retention': retention_counts,
-        })
-
-    context = {
-        **self.admin_site.each_context(request),
-        'title': 'Student Completion Report',
-        'report_data': report_data,
-    }
-
-    return context
+        if(i+1==target_period):
+            return completed_students, message
+        
+        previous_students = completed_students
 
 @csrf_exempt
 def evaluate(request):
@@ -171,10 +127,7 @@ def evaluate(request):
         
         evaluation_set = []
         
-        # students_to_evaluate = get_students_to_evaluate()
-        students_to_evaluate = Student.objects.exclude(
-            id__in=settings.IGNORED_STUDENTS
-        )
+        students_to_evaluate, debug_text = get_students_to_evaluate(4)
         
         # All the evaluations of the current rater
         completed_evaluations = Evaluation.objects.filter(
@@ -199,7 +152,10 @@ def evaluate(request):
             
             evaluation_set.append([recording, recording_signed_url])
         
-        completion = int(100*num_completed/num_total)
+        if num_total > 0:
+            completion = int(100*num_completed/num_total)
+        else:
+            completion = 0
         
         if(len(evaluation_set) >= 5):
             evaluation_set = random.sample(evaluation_set, 5)
@@ -210,13 +166,16 @@ def evaluate(request):
             'num_total': num_total,
             'completion': completion,
             'evaluation_set': evaluation_set, 
+            'debug_text': debug_text,
             'csrf_token_value': request.META.get('CSRF_COOKIE')
         }
 
         if(num_completed==num_total):
-            context_data['success'] = "All files have been evaluated."
-            
-        
+            if(num_total == 0):
+                context_data['error'] = "No files found."
+            else:
+                context_data['success'] = "All files have been evaluated."
+                  
         return render(request, 'evaluate/evaluate.html', context_data)
     
     elif request.method == "POST":
