@@ -198,7 +198,7 @@ def evaluate(request):
         ).exclude(
             # Exclude activities whose recordings have already been evaluated by the current rater
             recording_id__in=completed_recording_ids
-        ).select_related('recording').values('recording__id', 'recording__recorded_audio')
+        ).select_related('recording').values('recording__id', 'recording__recorded_audio')[:5]
 
         evaluation_set = []
 
@@ -218,9 +218,6 @@ def evaluate(request):
             completion = int(100*num_completed/num_total)
         else:
             completion = 0
-        
-        if(len(evaluation_set) >= 5):
-            evaluation_set = random.sample(evaluation_set, 5)
         
         context_data = {
             'scores': range(10),
