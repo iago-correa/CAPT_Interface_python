@@ -33,24 +33,24 @@
                 </div>
             </div>
 
-            {% for recording, recording_signed_url in evaluation_set %}
+            {% for recording_id, recording_name, recording_signed_url in evaluation_set %}
             
                 {% if forloop.first %}{% csrf_token %}{% endif %}
 
-                <div class="audio-block card mb-3" data-audio-id="{{ recording.id }}">
+                <div class="audio-block card mb-3" data-audio-id="{{ recording_id }}">
 
                     <div class="card-body">
                         
                         <div class="row align-items-center">
-                            <center><p>{{ recording.recorded_audio }}</p></center>
-                            <audio controls class="mb-3 col-7" id="recording_player_{{ recording.id }}" style="margin: 0 auto; display: block;">
+                            <center><p>{{ recording_name }}</p></center>
+                            <audio controls class="mb-3 col-7" id="recording_player_{{ recording_id }}" style="margin: 0 auto; display: block;">
                                 {% if recording_signed_url %}
                                     <source src="{{ recording_signed_url }}" type="audio/wav">
                                 {% endif %}
                             </audio>
                             <div class="mb-3 col-4">
-                                <input class="form-check-input" type="checkbox" value="True" name="problem-check-{{ recording.id }}" id="problem-check-{{ recording.id }}">
-                                <label class="form-check-label" for="problem-check-{{ recording.id }}">
+                                <input class="form-check-input" type="checkbox" value="True" name="problem-check-{{ recording_id }}" id="problem-check-{{ recording_id }}">
+                                <label class="form-check-label" for="problem-check-{{ recording_id }}">
                                     Problematic file
                                 </label>
                             </div>
@@ -66,10 +66,10 @@
                                     {% for score in scores %}
                                     <div class="col px-0">
                                         <div class="d-flex flex-column">
-                                            <label class="form-check-label score-label text-center" for="score-radio-{{ recording.id }}-{{ score }}">
+                                            <label class="form-check-label score-label text-center" for="score-radio-{{ recording_id }}-{{ score }}">
                                                 {{ score }}
                                             </label>
-                                            <input class="form-check-input mx-auto" type="radio" name="score-radio-{{ recording.id }}" id="score-radio-{{ recording.id }}-{{ score }}" value="{{ score }}">
+                                            <input class="form-check-input mx-auto" type="radio" name="score-radio-{{ recording_id }}" id="score-radio-{{ recording_id }}-{{ score }}" value="{{ score }}">
                                         </div>
                                     </div>
                                     {% endfor %}

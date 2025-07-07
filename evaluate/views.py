@@ -4,6 +4,9 @@ from django.http import HttpResponse
 from django.db.models import Count, Q
 from django.utils import timezone
 from django.conf import settings
+from django.http import JsonResponse
+from django.db import transaction
+from django.core.exceptions import ValidationError 
 
 from login.utils import get_signed_url
 from login.models import Student, Session 
@@ -103,6 +106,60 @@ def get_students_to_evaluate(target_period=5):
             return completed_students, message
         
         previous_students = completed_students
+        
+def update_or_create_evaluation(session, recording, evaluation_score, evaluation_problem):
+    
+    evaluation_data = {
+        'score': evaluation_score,
+        'problem': evaluation_problem
+    }
+    
+    try:
+        target_rater_for_evaluation = session.rater # This is the specific rater we care about for uniqueness
+    except Recording.DoesNotExist:
+        return JsonResponse({'error': 'Recording not found.'}, status=404)
+    except Session.DoesNotExist:
+        return JsonResponse({'error': 'Session not found.'}, status=404)
+
+    try:
+        with transaction.atomic():
+            # Query if a register with recording + session__rater already exists
+            try:
+                evaluation_instance = Evaluation.objects.get(
+                    recording=recording,
+                    session__rater=target_rater_for_evaluation
+                )
+                # If it exists, update it
+                for field, value in evaluation_data.items():
+                    setattr(evaluation_instance, field, value)
+
+                evaluation_instance.save() 
+                created = False
+                message = "Evaluation updated successfully."
+
+            except Evaluation.DoesNotExist:
+                # If it does not exist, call create a new
+                evaluation_instance = Evaluation(
+                    recording=recording,
+                    session=session,
+                    **evaluation_data
+                )
+                evaluation_instance.save()
+                created = True
+                message = "Evaluation created successfully."
+
+        # Return a success response
+        return JsonResponse({
+            'message': message,
+            'evaluation_id': evaluation_instance.id,
+            'created': created
+        }, status=200 if not created else 201)
+
+    except ValidationError as e:
+        return JsonResponse({'error': e.message_dict}, status=400)
+    except Exception as e:    
+        return JsonResponse({'error': str(e)}, status=500)
+
 
 @csrf_exempt
 def evaluate(request):
@@ -129,28 +186,33 @@ def evaluate(request):
         
         students_to_evaluate, debug_text = get_students_to_evaluate(4)
         
-        # All the evaluations of the current rater
-        completed_evaluations = Evaluation.objects.filter(
-            session__rater = rater
-        )
-        num_completed = len(completed_evaluations)
-        
-        # Select all recordings for the experiment students
-        activities = Activity.objects.filter(
+        # All the recordings that were evaluated by the current rater
+        completed_recording_ids = Evaluation.objects.filter(
+            session__rater=rater
+        ).values_list('recording_id', flat=True) # Only fetch the IDs
+
+        # Select the relavant activities
+        relevant_activities = Activity.objects.filter(
             session__student__in=students_to_evaluate,
             type__in=['test_pre_record', 'test_post_record', 'test_delay_record']
-        ).select_related('recording')
-        num_total = len(activities)
-        
-        # From all the recordings, pick the ones not evaluated
-        activities = activities.exclude(recording__in=completed_evaluations.values_list('recording', flat=True))
-        
-        for activity in activities:
-            recording = activity.recording
-            file_key = f"{settings.MEDIA_ROOT}{recording.recorded_audio.name}"
-            recording_signed_url = get_signed_url(file_key)
-            
-            evaluation_set.append([recording, recording_signed_url])
+        ).exclude(
+            # Exclude activities whose recordings have already been evaluated by the current rater
+            recording_id__in=completed_recording_ids
+        ).select_related('recording').values('recording__id', 'recording__recorded_audio')
+
+        evaluation_set = []
+
+        for activity in relevant_activities.iterator():
+            if activity['recording__id']:
+                file_key = f"{settings.MEDIA_ROOT}{activity['recording__recorded_audio']}"
+                recording_signed_url = get_signed_url(file_key)
+                evaluation_set.append([activity['recording__id'], activity['recording__recorded_audio'], recording_signed_url])
+
+        num_completed = Evaluation.objects.filter(session__rater=rater).count()
+        num_total = Activity.objects.filter(
+            session__student__in=students_to_evaluate,
+            type__in=['test_pre_record', 'test_post_record', 'test_delay_record']
+        ).count() 
         
         if num_total > 0:
             completion = int(100*num_completed/num_total)
@@ -188,30 +250,20 @@ def evaluate(request):
                 recording_id = key.split('-')[-1]
                 recording = Recording.objects.get(id = recording_id)
                 
-                evualuation_score = request.POST.get('score-radio-'+str(recording_id), 0)
+                evaluation_score = request.POST.get('score-radio-'+str(recording_id), 0)
                 evaluation_problem = request.POST.get(key, False)
         
-                Evaluation.objects.update_or_create(
-                    defaults={'session': session,
-                            'score': evualuation_score,
-                            'problem': evaluation_problem}, 
-                    recording=recording
-                )
+                update_or_create_evaluation(session, recording, evaluation_score, evaluation_problem)
                 
             if key.startswith('score-radio'):
                 
                 recording_id = key.split('-')[-1]
                 recording = Recording.objects.get(id = recording_id)
                 
-                evualuation_score = request.POST[key]
+                evaluation_score = request.POST[key]
                 evaluation_problem = request.POST.get('problem-check-'+str(recording_id), False)
         
-                Evaluation.objects.update_or_create(
-                    defaults={'session': session,
-                            'score': evualuation_score,
-                            'problem': evaluation_problem}, 
-                    recording=recording
-                )
+                update_or_create_evaluation(session, recording, evaluation_score, evaluation_problem)
         
         return redirect('evaluate:evaluate')
     
