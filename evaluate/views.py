@@ -13,6 +13,7 @@ from .models import Evaluation
 
 from urllib.parse import urlencode
 import datetime
+import random
 
 try:
     period_dates_config = settings.PERIOD_DATES
@@ -200,27 +201,51 @@ def evaluate(request):
         
         completion = int(100*num_completed/num_total)
         
-        return render(request, 'evaluate/evaluate.html', {
+        if(len(evaluation_set) >= 5):
+            evaluation_set = random.sample(evaluation_set, 5)
+        
+        context_data = {
             'scores': range(10),
             'num_completed': num_completed,
             'num_total': num_total,
             'completion': completion,
             'evaluation_set': evaluation_set, 
             'csrf_token_value': request.META.get('CSRF_COOKIE')
-        })
+        }
+
+        if(num_completed==num_total):
+            context_data['success'] = "All files have been evaluated."
+            
+        
+        return render(request, 'evaluate/evaluate.html', context_data)
     
     elif request.method == "POST":
         
         session = Session.objects.get(id = request.session['session_id'])
         
         for key in request.POST:
+            if key.startswith('problem-check'):
+                
+                recording_id = key.split('-')[-1]
+                recording = Recording.objects.get(id = recording_id)
+                
+                evualuation_score = request.POST.get('score-radio-'+str(recording_id), 0)
+                evaluation_problem = request.POST.get(key, False)
+        
+                Evaluation.objects.update_or_create(
+                    defaults={'session': session,
+                            'score': evualuation_score,
+                            'problem': evaluation_problem}, 
+                    recording=recording
+                )
+                
             if key.startswith('score-radio'):
+                
                 recording_id = key.split('-')[-1]
                 recording = Recording.objects.get(id = recording_id)
                 
                 evualuation_score = request.POST[key]
                 evaluation_problem = request.POST.get('problem-check-'+str(recording_id), False)
-        
         
                 Evaluation.objects.update_or_create(
                     defaults={'session': session,

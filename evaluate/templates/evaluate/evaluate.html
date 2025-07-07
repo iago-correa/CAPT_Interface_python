@@ -5,6 +5,18 @@
 
 <div class="container mt-4">
 
+    {% if error %}
+        <div class="alert alert-danger" role="alert">
+            {{ error }}
+        </div>
+    {% endif %}
+
+    {% if success %}
+        <div class="alert alert-success" role="alert">
+            {{ success }}
+        </div>
+    {% endif %}
+
     <div class="position-relative">
         <h1>Recordings evaluation</h1>
         <a class="btn btn-danger position-absolute top-0 end-0" href="{% url 'login:evaluation_logout'%}" role="button">Logout</a>
