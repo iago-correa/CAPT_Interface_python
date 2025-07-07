@@ -21,7 +21,7 @@ class Command(BaseCommand):
                 control_group=False
             )
             Rater.objects.get_or_create(
-                rater_id=rater_id
+                rater_id=rater_id,
                 password=rater_password
             )
         except Exception as e:
