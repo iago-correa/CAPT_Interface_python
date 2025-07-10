@@ -57,6 +57,49 @@ total_audio_counts = {
     for item in Audio.objects.values('type').annotate(count=Count('id'))
 }
 
+def get_completed_students_period(target_period=4):
+    
+    ignored_ids = settings.IGNORED_STUDENTS
+    
+    previous_students = set()
+
+    for i, period in enumerate(PERIODS_CONFIG):
+        period_name = period['name']
+        start_time = period['start_time'].replace(tzinfo=None)
+        end_time = period['end_time'].replace(tzinfo=None)
+        audio_type = period['count_types']
+        completion_target = 20
+
+        completed_students = set()
+
+        # Fetch current period completions
+        completions_qs = Activity.objects.filter(
+            time__range=(start_time, end_time),
+            recording__isnull=False,
+            recording__original_audio__type__in=audio_type,
+        ).exclude(
+            session__student__id__in=ignored_ids
+        ).values(
+            'session__student',
+            'session__student__control_group'
+        ).annotate(
+            unique_recordings=Count('recording__original_audio', distinct=True)
+        ).filter(
+            unique_recordings=completion_target
+        )
+        
+        if i > 0:
+            completions_qs = completions_qs.filter(session__student__id__in=previous_students)
+
+        for entry in completions_qs:
+            student_id = entry['session__student']
+            completed_students.add(student_id)
+
+        if(i==target_period):
+            return completed_students
+        
+        previous_students = completed_students
+
 @admin.register(StudentDataExplorer)
 class StudentDataExplorerAdmin(admin.ModelAdmin):
 
@@ -266,57 +309,57 @@ class StudentCompletionFilter(admin.SimpleListFilter):
         period = PERIODS_CONFIG[period_index]
         start_time, end_time = period['start_time'], period['end_time']
         
-        completed_student_ids = []
+        completed_student_ids = get_completed_students_period(period_index)
 
-        # --- Conditional Logic Based on the Selected Period ---
+        # # --- Conditional Logic Based on the Selected Period ---
 
-        if period_index in [0, 3, 4]:  # Logic for pre, post, and delayed periods
-            audio_type = 'test_nat'
-            completion_target = total_audio_counts.get(audio_type, 0)
+        # if period_index in [0, 3, 4]:  # Logic for pre, post, and delayed periods
+        #     audio_type = 'test_nat'
+        #     completion_target = total_audio_counts.get(audio_type, 0)
             
-            if completion_target > 0:
-                # Find students who completed ALL unique 'test_nat' audios
-                completed_student_ids = Activity.objects.filter(
-                    time__range=(start_time, end_time),
-                    recording__isnull=False,
-                    recording__original_audio__type=audio_type
-                ).values('session__student').annotate(
-                    unique_recordings=Count('recording__original_audio', distinct=True)
-                ).filter(
-                    unique_recordings=completion_target
-                ).values_list('session__student_id', flat=True)
+        #     if completion_target > 0:
+        #         # Find students who completed ALL unique 'test_nat' audios
+        #         completed_student_ids = Activity.objects.filter(
+        #             time__range=(start_time, end_time),
+        #             recording__isnull=False,
+        #             recording__original_audio__type=audio_type
+        #         ).values('session__student').annotate(
+        #             unique_recordings=Count('recording__original_audio', distinct=True)
+        #         ).filter(
+        #             unique_recordings=completion_target
+        #         ).values_list('session__student_id', flat=True)
 
-        elif period_index in [1, 2]:  # New, complex logic for Training periods
-            # We must find the two groups of completers separately and combine them.
+        # elif period_index in [1, 2]:  # New, complex logic for Training periods
+        #     # We must find the two groups of completers separately and combine them.
 
-            # A) Find completers from the Control Group (control_group=True)
-            # They must complete all 'train_nat' audios.
-            nat_target = total_audio_counts.get('train_nat', 0)
-            control_completers = []
-            if nat_target > 0:
-                control_completers = list(Activity.objects.filter(
-                    session__student__control_group=True,
-                    time__range=(start_time, end_time),
-                    recording__isnull=False,
-                    recording__original_audio__type='train_nat'
-                ).values('session__student').annotate(
-                    c=Count('recording__original_audio', distinct=True)
-                ).filter(c=nat_target).values_list('session__student_id', flat=True))
+        #     # A) Find completers from the Control Group (control_group=True)
+        #     # They must complete all 'train_nat' audios.
+        #     nat_target = total_audio_counts.get('train_nat', 0)
+        #     control_completers = []
+        #     if nat_target > 0:
+        #         control_completers = list(Activity.objects.filter(
+        #             session__student__control_group=True,
+        #             time__range=(start_time, end_time),
+        #             recording__isnull=False,
+        #             recording__original_audio__type='train_nat'
+        #         ).values('session__student').annotate(
+        #             c=Count('recording__original_audio', distinct=True)
+        #         ).filter(c=nat_target).values_list('session__student_id', flat=True))
 
-            # B) Find completers from the Experimental Group (control_group=False)
-            # They must complete at least 20 unique 'train_gs' audios.
-            gs_target = 20
-            experimental_completers = list(Activity.objects.filter(
-                session__student__control_group=False,
-                time__range=(start_time, end_time),
-                recording__isnull=False,
-                recording__original_audio__type='train_gs'
-            ).values('session__student').annotate(
-                c=Count('recording__original_audio', distinct=True)
-            ).filter(c__gte=gs_target).values_list('session__student_id', flat=True))
+        #     # B) Find completers from the Experimental Group (control_group=False)
+        #     # They must complete at least 20 unique 'train_gs' audios.
+        #     gs_target = 20
+        #     experimental_completers = list(Activity.objects.filter(
+        #         session__student__control_group=False,
+        #         time__range=(start_time, end_time),
+        #         recording__isnull=False,
+        #         recording__original_audio__type='train_gs'
+        #     ).values('session__student').annotate(
+        #         c=Count('recording__original_audio', distinct=True)
+        #     ).filter(c__gte=gs_target).values_list('session__student_id', flat=True))
             
-            # Combine the two lists of student IDs
-            completed_student_ids = control_completers + experimental_completers
+        #     # Combine the two lists of student IDs
+        #     completed_student_ids = control_completers + experimental_completers
 
         # --- Apply the final filter to the student list ---
         if status == 'completed':
