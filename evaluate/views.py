@@ -185,6 +185,7 @@ def evaluate(request):
         evaluation_set = []
         
         students_to_evaluate, debug_text = get_students_to_evaluate(4)
+        # students_to_evaluate = Student.objects.all()
         
         # All the recordings that were evaluated by the current rater
         completed_recording_ids = Evaluation.objects.filter(
@@ -198,7 +199,7 @@ def evaluate(request):
         ).exclude(
             # Exclude activities whose recordings have already been evaluated by the current rater
             recording_id__in=completed_recording_ids
-        ).select_related('recording').values('recording__id', 'recording__recorded_audio')[:5]
+        ).select_related('recording').values('recording__id', 'recording__recorded_audio', 'recording__original_audio__transcript')[:5]
 
         evaluation_set = []
 
@@ -206,7 +207,11 @@ def evaluate(request):
             if activity['recording__id']:
                 file_key = f"{settings.MEDIA_ROOT}{activity['recording__recorded_audio']}"
                 recording_signed_url = get_signed_url(file_key)
-                evaluation_set.append([activity['recording__id'], activity['recording__recorded_audio'], recording_signed_url])
+                evaluation_set.append(
+                    [activity['recording__id'], 
+                     activity['recording__recorded_audio'], 
+                     activity['recording__original_audio__transcript'], 
+                     recording_signed_url])
 
         num_completed = Evaluation.objects.filter(session__rater=rater).count()
         num_total = Activity.objects.filter(
