@@ -199,7 +199,7 @@ def evaluate(request):
         ).exclude(
             # Exclude activities whose recordings have already been evaluated by the current rater
             recording_id__in=completed_recording_ids
-        ).select_related('recording').values('recording__id', 'recording__recorded_audio', 'recording__original_audio__transcript')[:5]
+        ).select_related('recording').values('recording__id', 'recording__recorded_audio', 'recording__original_audio__transcript').order_by("?")[:5]
 
         evaluation_set = []
 
