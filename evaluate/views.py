@@ -7,6 +7,7 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.db import transaction
 from django.core.exceptions import ValidationError 
+from django.contrib import messages
 
 from login.utils import get_signed_url
 from login.models import Student, Session 
@@ -60,6 +61,19 @@ try:
 except (AttributeError, TypeError):
     # Fallback if settings.PERIOD_DATES is not configured, prevents crashing
     PERIODS_CONFIG = []
+
+PICKED_SENTENCES = [
+    'audio/U1_reading_speaker00_t11_s1.mp3', 
+    'audio/U2_presentation_speaker00_t6_s1.mp3',
+    'audio/U1_reading_speaker00_t25_s1.mp3',
+    'audio/U2_presentation_speaker00_t4_s1.mp3',
+    'audio/U1_presentation_speaker00_t8_s1.mp3',
+    'audio/U1_reading_speaker00_t24_s1.mp3',
+    'audio/U2_reading_speaker00_t22_s1.mp3',
+    'audio/U2_reading_speaker00_t20_s1.mp3',
+    'audio/U1_authentic_conversations_speaker01_t18_s1.mp3',
+    'audio/U1_presentation_speaker00_t10_s1.mp3'
+]
 
 def get_students_to_evaluate(target_period=5):
     
@@ -115,7 +129,7 @@ def update_or_create_evaluation(session, recording, evaluation_score, evaluation
     }
     
     try:
-        target_rater_for_evaluation = session.rater # This is the specific rater we care about for uniqueness
+        target_rater_for_evaluation = session.rater 
     except Recording.DoesNotExist:
         return JsonResponse({'error': 'Recording not found.'}, status=404)
     except Session.DoesNotExist:
@@ -184,13 +198,20 @@ def evaluate(request):
         
         evaluation_set = []
         
-        students_to_evaluate, debug_text = get_students_to_evaluate(4)
-        # students_to_evaluate = Student.objects.all()
+        students_to_evaluate, debug_text = get_students_to_evaluate(1) # Should be 4, 1 is for testing
         
         # All the recordings that were evaluated by the current rater
         completed_recording_ids = Evaluation.objects.filter(
             session__rater=rater
         ).values_list('recording_id', flat=True) # Only fetch the IDs
+        
+        n_completed_recording = len(completed_recording_ids)
+        if(n_completed_recording < 254):
+            debug_text += '. Evaluation session: 1'
+        elif(n_completed_recording >= 254 and n_completed_recording < 508):
+            debug_text += '. Evaluation session: 2'
+        elif(n_completed_recording >= 508 and n_completed_recording < 760):
+            debug_text += '. Evaluation session: 3'
 
         # Select the relavant activities
         relevant_activities = Activity.objects.filter(
