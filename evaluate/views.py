@@ -294,6 +294,7 @@ def evaluate(request, part_number):
         relevant_activities = relevant_activities.filter(recording__original_audio__in=picked_sentences)
         relevant_activities = relevant_activities.exclude(recording_id__in=completed_recording_ids)
         relevant_activities = relevant_activities.exclude(recording_id__in=previously_completed_recordings_ids)
+        relevant_activities = relevant_activities.order_by('?')
         
         if part_number == 1:
             num_total = parts_proportions[0]
