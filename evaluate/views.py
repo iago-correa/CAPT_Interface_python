@@ -75,6 +75,34 @@ PICKED_SENTENCES = [
     'audio/U1_presentation_speaker00_t10_s1.mp3'
 ]
 
+def get_unique_recordings_students(period_index, student_ids):
+    
+    relevant_activities = Activity.objects.none()
+    
+    for t in range(0, period_index):
+        
+        selected_period_index = t
+        period = PERIODS_CONFIG[selected_period_index]
+
+        start = period['start_time'].replace(tzinfo=None)
+        end = period['end_time'].replace(tzinfo=None)
+        act_type = period['activity_type']
+        
+        all_activities = Activity.objects.filter(
+            session__student__in=student_ids, 
+            time__range=(start, end)
+        ).values(
+            'recording__id', 
+            'recording__recorded_audio', 
+            'recording__original_audio__transcript'
+        ).order_by('time')
+        
+        filtered_activities = all_activities.filter(type=act_type)
+        
+        relevant_activities = relevant_activities | filtered_activities
+
+    return relevant_activities
+
 def get_students_to_evaluate(target_period=5):
     
     ignored_ids = settings.IGNORED_STUDENTS
@@ -198,7 +226,7 @@ def evaluate(request):
         
         evaluation_set = []
         
-        students_to_evaluate, debug_text = get_students_to_evaluate(1) # Should be 4, 1 is for testing
+        students_to_evaluate, debug_text = get_students_to_evaluate(1) # It should be 4, 1 is for testing
         
         # All the recordings that were evaluated by the current rater
         completed_recording_ids = Evaluation.objects.filter(
@@ -212,15 +240,15 @@ def evaluate(request):
             debug_text += '. Evaluation session: 2'
         elif(n_completed_recording >= 508 and n_completed_recording < 760):
             debug_text += '. Evaluation session: 3'
-
-        # Select the relavant activities
-        relevant_activities = Activity.objects.filter(
-            session__student__in=students_to_evaluate,
-            type__in=['test_pre_record', 'test_post_record', 'test_delay_record']
-        ).exclude(
-            # Exclude activities whose recordings have already been evaluated by the current rater
-            recording_id__in=completed_recording_ids
-        ).select_related('recording').values('recording__id', 'recording__recorded_audio', 'recording__original_audio__transcript').order_by("?")[:5]
+        
+        relevant_activities = get_unique_recordings_students(1, students_to_evaluate)
+        num_total = len(relevant_activities)
+        
+        relevant_activities = relevant_activities.exclude(recording_id__in=completed_recording_ids)
+        
+        # Reduce number to show at once
+        number_show = 100
+        relevant_activities = relevant_activities.order_by("?")[:number_show]
 
         evaluation_set = []
 
@@ -235,10 +263,6 @@ def evaluate(request):
                      recording_signed_url])
 
         num_completed = Evaluation.objects.filter(session__rater=rater).count()
-        num_total = Activity.objects.filter(
-            session__student__in=students_to_evaluate,
-            type__in=['test_pre_record', 'test_post_record', 'test_delay_record']
-        ).count() 
         
         if num_total > 0:
             completion = int(100*num_completed/num_total)
