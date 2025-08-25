@@ -17,7 +17,7 @@ from .models import Evaluation
 
 from urllib.parse import urlencode
 import datetime
-import random
+import os
 
 try:
     period_dates_config = settings.PERIOD_DATES
@@ -74,6 +74,41 @@ PICKED_SENTENCES = {
     'audio/U1_authentic_conversations_speaker01_t18_s1.mp3',
     'audio/U1_presentation_speaker00_t10_s1.mp3'
 }
+
+def is_authorized(rater, part_number):
+    
+    part1_raters = settings.EVAL_PART1_RATERS
+    part2_raters = settings.EVAL_PART2_RATERS
+    part3_raters = settings.EVAL_PART3_RATERS
+    
+    permissions={
+        1: rater.id in part1_raters,
+        2: rater.id in part2_raters,
+        3: rater.id in part3_raters
+    }
+    
+    if permissions[part_number]:
+        return True
+    else:
+        return False
+
+def is_part_completed(rater, part_number):
+    
+    parts_proportions = settings.PARTS_PROPORTIONS
+    
+    count = Evaluation.objects.filter(
+        session__rater=rater,
+        part = part_number
+    ).aggregate(Count('id'))['id__count']
+    
+    if part_number == 1 and count == parts_proportions[0]:
+        return True
+    elif part_number == 2 and count == parts_proportions[1]:
+        return True
+    elif part_number == 3 and count == parts_proportions[2]:
+        return True
+    else:
+        return False
 
 def get_unique_recordings_students(period_index, student_ids):
     
@@ -149,11 +184,12 @@ def get_students_to_evaluate(target_period=5):
         
         previous_students = completed_students
         
-def update_or_create_evaluation(session, recording, evaluation_score, evaluation_problem):
+def update_or_create_evaluation(session, recording, evaluation_score, evaluation_problem, evaluation_part):
     
     evaluation_data = {
         'score': evaluation_score,
-        'problem': evaluation_problem
+        'problem': evaluation_problem,
+        'part': evaluation_part
     }
     
     try:
@@ -204,12 +240,14 @@ def update_or_create_evaluation(session, recording, evaluation_score, evaluation
 
 
 @csrf_exempt
-def evaluate(request):
+def evaluate(request, part_number):
     
     session_id = request.session.get('session_id')
     target_session = 4 # It should be 4 for deploy
     
-    picked_sentences = Audio.objects.filter(file__in=PICKED_SENTENCES)
+    normalized_paths = [os.path.join(*s.split('/')) for s in PICKED_SENTENCES]
+    picked_sentences = Audio.objects.filter(file__in=normalized_paths)
+    parts_proportions = settings.PARTS_PROPORTIONS
     
     if not session_id:
         error_message = 'Please sign in.'
@@ -225,35 +263,51 @@ def evaluate(request):
         query_params = urlencode({'error': error_message})
         return redirect(f"{reverse('login:evaluation_login')}?{query_params}")
     
+    if not is_authorized(rater, part_number):
+        error_message = 'This part is not available yet.'
+        query_params = urlencode({'error': error_message})
+        return redirect(f"{reverse('evaluate:select_part')}?{query_params}")
+    if is_part_completed(rater, part_number):
+        message = 'This part is already complete.'
+        query_params = urlencode({'success': message})
+        return redirect(f"{reverse('evaluate:select_part')}?{query_params}")
+    
     if request.method == 'GET':
         
         evaluation_set = []
         
         students_to_evaluate, debug_text = get_students_to_evaluate(target_session) 
-        students_to_evaluate = {1 ,67}
+        # students_to_evaluate = {1 ,67}
         
         # All the recordings that were evaluated by the current rater
         completed_recording_ids = Evaluation.objects.filter(
-            session__rater=rater
-        ).values_list('recording_id', flat=True) # Only fetch the IDs
+            session__rater=rater,
+            part=part_number
+        ).values_list('recording_id', flat=True) # Only fetch the IDs\
+        num_completed_recordings = len(completed_recording_ids)
         
-        n_completed_recording = len(completed_recording_ids)
-        if(n_completed_recording < 254):
-            debug_text += '. Evaluation session: 1'
-        elif(n_completed_recording >= 254 and n_completed_recording < 508):
-            debug_text += '. Evaluation session: 2'
-        elif(n_completed_recording >= 508 and n_completed_recording < 760):
-            debug_text += '. Evaluation session: 3'
+        previously_completed_recordings_ids = Evaluation.objects.filter(
+            session__rater=rater
+        ).values_list('recording_id', flat=True) 
         
         relevant_activities = get_unique_recordings_students(target_session, students_to_evaluate)
         relevant_activities = relevant_activities.filter(recording__original_audio__in=picked_sentences)
-        num_total = len(relevant_activities)
-        
         relevant_activities = relevant_activities.exclude(recording_id__in=completed_recording_ids)
+        relevant_activities = relevant_activities.exclude(recording_id__in=previously_completed_recordings_ids)
+        
+        if part_number == 1:
+            num_total = parts_proportions[0]
+            relevant_activities = relevant_activities[:parts_proportions[0]-num_completed_recordings]
+        elif part_number == 2:
+            num_total = parts_proportions[1]
+            relevant_activities = relevant_activities[:parts_proportions[1]-num_completed_recordings]
+        elif part_number ==3 :
+            num_total = parts_proportions[2]
+            relevant_activities = relevant_activities[:parts_proportions[2]-num_completed_recordings]
         
         # Reduce number to show at once
-        number_show = 100
-        relevant_activities = relevant_activities.order_by("?")[:number_show]
+        number_show = 5
+        relevant_activities = relevant_activities[:number_show]
 
         evaluation_set = []
 
@@ -266,17 +320,15 @@ def evaluate(request):
                      activity['recording__recorded_audio'], 
                      activity['recording__original_audio__transcript'], 
                      recording_signed_url])
-
-        num_completed = Evaluation.objects.filter(session__rater=rater).count()
         
         if num_total > 0:
-            completion = int(100*num_completed/num_total)
+            completion = int(100*num_completed_recordings/num_total)
         else:
             completion = 0
         
         context_data = {
             'scores': range(10),
-            'num_completed': num_completed,
+            'num_completed': num_completed_recordings,
             'num_total': num_total,
             'completion': completion,
             'evaluation_set': evaluation_set, 
@@ -284,13 +336,15 @@ def evaluate(request):
             'csrf_token_value': request.META.get('CSRF_COOKIE')
         }
 
-        if(num_completed==num_total):
+        if(num_completed_recordings==num_total):
             if(num_total == 0):
                 context_data['error'] = "No files found."
             else:
                 context_data['success'] = "All files have been evaluated."
-                  
-        return render(request, 'evaluate/evaluate.html', context_data)
+                 
+        
+        return render(request, 'evaluate/evaluate.html', context_data) 
+        # return render(request, 'evaluate/evaluate.html', context_data)
     
     elif request.method == "POST":
         
@@ -304,8 +358,9 @@ def evaluate(request):
                 
                 evaluation_score = request.POST.get('score-radio-'+str(recording_id), 0)
                 evaluation_problem = request.POST.get(key, False)
+                evaluation_part = part_number
         
-                update_or_create_evaluation(session, recording, evaluation_score, evaluation_problem)
+                update_or_create_evaluation(session, recording, evaluation_score, evaluation_problem, evaluation_part)
                 
             if key.startswith('score-radio'):
                 
@@ -314,8 +369,56 @@ def evaluate(request):
                 
                 evaluation_score = request.POST[key]
                 evaluation_problem = request.POST.get('problem-check-'+str(recording_id), False)
+                evaluation_part = part_number
         
-                update_or_create_evaluation(session, recording, evaluation_score, evaluation_problem)
+                update_or_create_evaluation(session, recording, evaluation_score, evaluation_problem, evaluation_part)
         
-        return redirect('evaluate:evaluate')
+        return redirect('evaluate:evaluate', part_number=part_number)
+
+def select_part(request):
     
+    session_id = request.session.get('session_id')
+    
+    if not session_id:
+        error_message = 'Please sign in.'
+        query_params = urlencode({'error': error_message})
+        return redirect(f"{reverse('login:evaluation_login')}?{query_params}")
+    
+    session_obj = Session.objects.get(id=session_id)
+    rater = session_obj.rater
+    part1_raters = settings.EVAL_PART1_RATERS
+    part2_raters = settings.EVAL_PART2_RATERS
+    part3_raters = settings.EVAL_PART3_RATERS
+    
+    permissions=[
+        rater.id in part1_raters,
+        rater.id in part2_raters,
+        rater.id in part3_raters
+    ]
+    
+    parts_proportions = settings.PARTS_PROPORTIONS
+    
+    parts_completion_per_rater = Evaluation.objects.filter(
+        session__rater=rater
+    ).values('part').annotate(total=Count('id')).order_by('part')
+    
+    completion_dict = {
+        item['part']: item['total'] for item in parts_completion_per_rater
+    }
+    
+    completed_parts = [
+        completion_dict.get(1, 0) == parts_proportions[0],
+        completion_dict.get(2, 0) == parts_proportions[1],
+        completion_dict.get(3, 0) == parts_proportions[2]
+    ]
+    
+    success_message = request.GET.get('success', '')
+    error_message = request.GET.get('error', '')
+    
+    context = {
+        'permissions': zip(permissions, completed_parts),
+        'success': success_message, 
+        'error': error_message
+    }
+    
+    return render(request, 'evaluate/select_part.html', context)

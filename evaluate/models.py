@@ -18,6 +18,7 @@ class Evaluation(models.Model):
                               related_name="evaluations")
     score = models.IntegerField(default=-1, validators=[MinValueValidator(0), MaxValueValidator(9)])
     problem = models.BooleanField(default=False)
+    part = models.IntegerField(default=1, validators=[MinValueValidator(1), MaxValueValidator(3)])
 
     def clean(self):
         if self.recording and self.session and self.session.rater:

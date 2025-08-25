@@ -184,3 +184,9 @@ STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
 STATIC_ROOT = 'static/'
 
 IGNORED_STUDENTS = config('IGNORED_STUDENTS', cast=list_of_ints)
+
+EVAL_PART1_RATERS = config('EVAL_PART1_RATERS', cast=list_of_ints)
+EVAL_PART2_RATERS = config('EVAL_PART2_RATERS', cast=list_of_ints)
+EVAL_PART3_RATERS = config('EVAL_PART3_RATERS', cast=list_of_ints)
+
+PARTS_PROPORTIONS = config('PARTS_PROPORTIONS', cast=list_of_ints)

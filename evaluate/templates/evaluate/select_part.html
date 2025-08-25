@@ -1,0 +1,50 @@
+{% extends 'login/base.html' %}
+{% load static %} 
+
+{% block content %}
+
+{% if error %}
+    <div class="alert alert-danger" role="alert">
+        {{ error }}
+    </div>
+{% endif %}
+
+{% if success %}
+    <div class="alert alert-success" role="alert">
+        {{ success }}
+    </div>
+{% endif %}
+
+<div class="container mt-4">
+
+    <div class="position-relative">
+        <h1>Selection screen</h1>
+        <a class="btn btn-danger position-absolute top-0 end-0" href="{% url 'login:evaluation_logout'%}" role="button">Logout</a>
+
+        {% for permission, completed in permissions %}
+
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Evaluation part 0{{forloop.counter}}</h5>
+                    <p class="card-text">Description of this part。</p>
+                    <div class="mt-2">
+                        {% if completed %}
+                            <p class="text-success h6">This part was already completed.</p>
+                        {% else %}
+                            {% if permission %}
+                                <a class="btn btn-primary" href="{% url 'evaluate:evaluate' forloop.counter %}" role="button">Start</a>
+                            {% else %}
+                                <a class="btn btn-secondary disabled" href="#" role="button" aria-disabled="true">Unavailable</a>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+                
+        {% endfor %}
+
+    </div>
+</div>
+
+
+{% endblock %}

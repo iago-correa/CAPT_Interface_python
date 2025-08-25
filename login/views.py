@@ -104,14 +104,14 @@ def evaluation_login(request):
             return render(request, 'login/evaluation_login.html', {'login_form': login_form, 'error': 'Login information incorrect.'})
         
         request.session.pop('student_id', None)
-        return redirect('evaluate:evaluate')
+        return redirect('evaluate:select_part')
     
     else:
         
         if request.session.get('rater_id'):
             
             request.session.pop('student_id', None)
-            return redirect('evaluate:evaluate')
+            return redirect('evaluate:select_part')
 
         else:
             login_form = LogInRater()

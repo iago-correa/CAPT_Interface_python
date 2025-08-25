@@ -24,7 +24,7 @@
 
     <div class="mt-4 mb-5 d-grid">
         
-        <form method="post" action="{% url 'evaluate:evaluate' %}" class="form-check" id="score-radio-form">
+        <form method="post" action="{{ request.path }}" class="form-check" id="score-radio-form">
 
             <p>Completed recordings:</p>
             <div class="progress mb-3">
@@ -42,7 +42,7 @@
                     <div class="card-body">
                         
                         <div class="row align-items-center">
-                            <center><p>Audio {{ recording_transcript }}</p></center>
+                            <center><p>Audio {{ forloop.counter|add:num_completed }}</p></center>
                             <audio controls class="mb-3 col-7" id="recording_player_{{ recording_id }}" style="margin: 0 auto; display: block;">
                                 {% if recording_signed_url %}
                                     <source src="{{ recording_signed_url }}" type="audio/wav">
