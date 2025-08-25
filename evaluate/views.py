@@ -11,7 +11,7 @@ from django.contrib import messages
 
 from login.utils import get_signed_url
 from login.models import Student, Session 
-from practice.models import Activity
+from practice.models import Activity, Audio
 from record.models import Recording
 from .models import Evaluation
 
@@ -62,7 +62,7 @@ except (AttributeError, TypeError):
     # Fallback if settings.PERIOD_DATES is not configured, prevents crashing
     PERIODS_CONFIG = []
 
-PICKED_SENTENCES = [
+PICKED_SENTENCES = {
     'audio/U1_reading_speaker00_t11_s1.mp3', 
     'audio/U2_presentation_speaker00_t6_s1.mp3',
     'audio/U1_reading_speaker00_t25_s1.mp3',
@@ -73,7 +73,7 @@ PICKED_SENTENCES = [
     'audio/U2_reading_speaker00_t20_s1.mp3',
     'audio/U1_authentic_conversations_speaker01_t18_s1.mp3',
     'audio/U1_presentation_speaker00_t10_s1.mp3'
-]
+}
 
 def get_unique_recordings_students(period_index, student_ids):
     
@@ -207,8 +207,9 @@ def update_or_create_evaluation(session, recording, evaluation_score, evaluation
 def evaluate(request):
     
     session_id = request.session.get('session_id')
-    
     target_session = 4 # It should be 4 for deploy
+    
+    picked_sentences = Audio.objects.filter(file__in=PICKED_SENTENCES)
     
     if not session_id:
         error_message = 'Please sign in.'
@@ -229,7 +230,7 @@ def evaluate(request):
         evaluation_set = []
         
         students_to_evaluate, debug_text = get_students_to_evaluate(target_session) 
-        # students_to_evaluate = {1 ,67}
+        students_to_evaluate = {1 ,67}
         
         # All the recordings that were evaluated by the current rater
         completed_recording_ids = Evaluation.objects.filter(
@@ -245,6 +246,7 @@ def evaluate(request):
             debug_text += '. Evaluation session: 3'
         
         relevant_activities = get_unique_recordings_students(target_session, students_to_evaluate)
+        relevant_activities = relevant_activities.filter(recording__original_audio__in=picked_sentences)
         num_total = len(relevant_activities)
         
         relevant_activities = relevant_activities.exclude(recording_id__in=completed_recording_ids)

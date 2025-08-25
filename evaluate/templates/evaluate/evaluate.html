@@ -42,7 +42,7 @@
                     <div class="card-body">
                         
                         <div class="row align-items-center">
-                            <center><p>Audio {{ forloop.counter|add:num_completed }}</p></center>
+                            <center><p>Audio {{ recording_transcript }}</p></center>
                             <audio controls class="mb-3 col-7" id="recording_player_{{ recording_id }}" style="margin: 0 auto; display: block;">
                                 {% if recording_signed_url %}
                                     <source src="{{ recording_signed_url }}" type="audio/wav">
