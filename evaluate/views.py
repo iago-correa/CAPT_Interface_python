@@ -80,26 +80,26 @@ def get_unique_recordings_students(period_index, student_ids):
     relevant_activities = Activity.objects.none()
     
     for t in range(0, period_index):
-        
-        selected_period_index = t
-        period = PERIODS_CONFIG[selected_period_index]
+        if t not in [1,2]:
+            selected_period_index = t
+            period = PERIODS_CONFIG[selected_period_index]
 
-        start = period['start_time'].replace(tzinfo=None)
-        end = period['end_time'].replace(tzinfo=None)
-        act_type = period['activity_type']
-        
-        all_activities = Activity.objects.filter(
-            session__student__in=student_ids, 
-            time__range=(start, end)
-        ).values(
-            'recording__id', 
-            'recording__recorded_audio', 
-            'recording__original_audio__transcript'
-        ).order_by('time')
-        
-        filtered_activities = all_activities.filter(type=act_type)
-        
-        relevant_activities = relevant_activities | filtered_activities
+            start = period['start_time'].replace(tzinfo=None)
+            end = period['end_time'].replace(tzinfo=None)
+            act_type = period['activity_type']
+            
+            all_activities = Activity.objects.filter(
+                session__student__in=student_ids, 
+                time__range=(start, end)
+            ).values(
+                'recording__id', 
+                'recording__recorded_audio', 
+                'recording__original_audio__transcript'
+            ).order_by('time')
+            
+            filtered_activities = all_activities.filter(type=act_type)
+            
+            relevant_activities = relevant_activities | filtered_activities
 
     return relevant_activities
 
@@ -208,6 +208,8 @@ def evaluate(request):
     
     session_id = request.session.get('session_id')
     
+    target_session = 4 # It should be 4 for deploy
+    
     if not session_id:
         error_message = 'Please sign in.'
         query_params = urlencode({'error': error_message})
@@ -226,7 +228,8 @@ def evaluate(request):
         
         evaluation_set = []
         
-        students_to_evaluate, debug_text = get_students_to_evaluate(1) # It should be 4, 1 is for testing
+        students_to_evaluate, debug_text = get_students_to_evaluate(target_session) 
+        # students_to_evaluate = {1 ,67}
         
         # All the recordings that were evaluated by the current rater
         completed_recording_ids = Evaluation.objects.filter(
@@ -241,7 +244,7 @@ def evaluate(request):
         elif(n_completed_recording >= 508 and n_completed_recording < 760):
             debug_text += '. Evaluation session: 3'
         
-        relevant_activities = get_unique_recordings_students(1, students_to_evaluate)
+        relevant_activities = get_unique_recordings_students(target_session, students_to_evaluate)
         num_total = len(relevant_activities)
         
         relevant_activities = relevant_activities.exclude(recording_id__in=completed_recording_ids)
