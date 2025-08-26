@@ -268,7 +268,7 @@ def evaluate(request, part_number):
         query_params = urlencode({'error': error_message})
         return redirect(f"{reverse('evaluate:select_part')}?{query_params}")
     if is_part_completed(rater, part_number):
-        message = 'Part ' + str(part_number).zfill(2) + ' is completed.'
+        message = 'Part ' + str(part_number).zfill(2) + ' is completed. Please make sure to access the link to register the completion on Prolific.'
         query_params = urlencode({'success': message})
         return redirect(f"{reverse('evaluate:select_part')}?{query_params}")
     

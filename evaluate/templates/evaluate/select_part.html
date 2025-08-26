@@ -41,7 +41,24 @@
                     {% endif %}
                     <div class="mt-2">
                         {% if completed %}
+                            
                             <p class="text-success h6">This part was already completed.</p>
+
+                            {% if forloop.counter == 1 %}
+                                <p class="card-text">
+                                    <a href="https://app.prolific.com/submissions/complete?cc=CA2QEGLT" class="link-success link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover">Click here</a> to complete this part on Prolific.
+                                </p>
+                            {% elif forloop.counter == 2 %}
+                                <p class="card-text">
+                                    <a href="https://app.prolific.com/submissions/complete?cc=C60HSK7T" class="link-success link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover">Click here</a> to complete this part on Prolific.
+                                </p>
+                            {% elif forloop.counter == 3 %}
+                                <p class="card-text">
+                                    <a href="https://app.prolific.com/submissions/complete?cc=CDZ0RIZL" class="link-success link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover">Click here</a> to complete this part on Prolific.
+                                </p>
+                            {% endif %}
+
+
                         {% else %}
                             {% if permission %}
                                 <a class="btn btn-primary" href="{% url 'evaluate:evaluate' forloop.counter %}" role="button">Start</a>
