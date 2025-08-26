@@ -307,7 +307,7 @@ def evaluate(request, part_number):
             relevant_activities = relevant_activities[:parts_proportions[2]-num_completed_recordings]
         
         # Reduce number to show at once
-        number_show = 5
+        number_show = 10
         relevant_activities = relevant_activities[:number_show]
 
         evaluation_set = []

@@ -17,12 +17,47 @@
         </div>
     {% endif %}
 
+
     <div class="position-relative">
         <h1>Recordings evaluation</h1>
-        <a class="btn btn-danger position-absolute top-0 end-0" href="{% url 'login:evaluation_logout'%}" role="button">Logout</a>
+        <!-- <a class="btn btn-danger position-absolute top-0 end-0" href="{% url 'login:evaluation_logout'%}" role="button">Logout</a> -->
     </div>
 
     <div class="mt-4 mb-5 d-grid">
+
+        <div class="accordion mb-4" id="instructionsAccordion">
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingOne">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                        <strong>Instructions & Rating Scale Reminder</strong>
+                    </button>
+                </h2>
+                <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#instructionsAccordion">
+                    <div class="accordion-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">
+                                <strong>Process:</strong> Listen to each recording, then select a rating from 0 to 9.<br>
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Problem report:</strong> In case some recording is completely silent, extremely noisy, or for some reason you cannot rate it, please check the <strong>"Problematic file"</strong> box and leave the score empty.
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Save:</strong> Click the blue <strong>"Next"</strong> button at the bottom to save your 10 ratings and continue. 
+                                <span class="text-danger">Your progress on the current page is only saved when you click "Next".</span>
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Rating Scale Quick Guide:</strong>
+                                <ul>
+                                    <li><strong>9:</strong> Perfectly clear / effortless to understand.</li>
+                                    <li><strong>5:</strong> Understandable, but requires some effort.</li>
+                                    <li><strong>0:</strong> Impossible to understand.</li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
         
         <form method="post" action="{{ request.path }}" class="form-check" id="score-radio-form">
 

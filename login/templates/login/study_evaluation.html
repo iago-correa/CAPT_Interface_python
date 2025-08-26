@@ -1,0 +1,105 @@
+{% extends 'login/base.html' %}
+{% load static %} 
+
+{% block content %}
+
+
+<div class="container mt-4">
+
+    <div class="position-relative">
+
+        <!-- Main Header -->
+        <div class="card header-card text-center mb-4 shadow-sm">
+            <div class="card-body p-4">
+                <h1 class="display-6">Speech Comprehensibility Study</h1>
+            </div>
+        </div>
+
+        <!-- Welcome Message -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-person-check-fill me-2"></i>Welcome!</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Thank you for your participation. Your contribution is essential to our research on computer assisted language learning. Please read the following instructions carefully before you begin.</p>
+            </div>
+        </div>
+
+        <!-- Rating Scale Definition -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-rulers me-2"></i>The Rating Scale (0-9)</h5>
+            </div>
+            <div class="card-body">
+                <p>You will listen to <strong>short audio recordings</strong> and rate how easy each one is to understand. Please use the following scale as your guide:</p>
+                <ul class="list-group">
+                    <li class="list-group-item"><strong>9 - Completely comprehensible:</strong> The speech is clear and effortless to understand, like a typical native speaker.</li>
+                    <li class="list-group-item"><strong>7 - Mostly Comprehensible:</strong> The speech is easy to understand, but with very minor problems that don't affect understanding.</li>
+                    <li class="list-group-item"><strong>5 - Moderately Comprehensible:</strong> The speech is generally understandable, but requires some effort from you, the listener.</li>
+                    <li class="list-group-item"><strong>3 - Barely Comprehensible:</strong> You can understand some words or phrases, but with significant effort. The overall meaning is unclear.</li>
+                    <li class="list-group-item"><strong>0 - Impossible to understand:</strong> You cannot understand any of the words being said.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Step-by-Step Instructions -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-list-ol me-2"></i>Step-by-Step Guide</h5>
+            </div>
+            <div class="card-body">
+                <ol class="list-group list-group-numbered">
+                    <li class="list-group-item d-flex align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">Login</div>
+                            On the next page, please use <strong>your designed credential</strong> for both the ID and password. <strong>You are not supposed to use your Prolific ID</strong>, but rather the credentials gave to you by this study.
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">Select the Part</div>
+                            After logging in, you will see a 'Selection screen'. Please click on the button <strong>Start</strong> for the corresponding part.
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">Rate the Recordings</div>
+                            Recordings are presented in batches of 10. Listen to each audio file, then select your rating from 0 to 9.
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">Save and Continue</div>
+                            After rating all 10 recordings on a page, click the <strong>"Next"</strong> button to save your ratings and move to the next batch. <span class="text-danger">Your ratings are only saved when you click "Next".</span><br>
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">Complete the Study</div>
+                            After the final batch, you will return to the Part Selection screen. A new link will appear. <br>
+                            <span class="text-danger">Please remember you need to click "Next" on the final recordings batch to complete all the ratings.</span>
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">Submit on Prolific</div>
+                            Click the final link that says <strong>"<u>Click here</u> to complete this part on Prolific."</strong> to register your completion and receive payment.
+                        </div>
+                    </li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Proceed Button -->
+        <div class="d-grid">
+            <a href="{% url 'login:evaluation_login'%}" class="btn btn-primary btn-lg btn-proceed shadow">
+                I have read the instructions and am ready to proceed <i class="bi bi-arrow-right-circle-fill ms-2"></i>
+
+            </a>
+        </div>
+
+    </div>
+</div>
+
+
+{% endblock %}

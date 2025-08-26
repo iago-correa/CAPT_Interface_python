@@ -19,7 +19,7 @@
 
     <div class="position-relative">
         <h1>Selection screen</h1>
-        <a class="btn btn-danger position-absolute top-0 end-0" href="{% url 'login:evaluation_logout'%}" role="button">Logout</a>
+        <!-- <a class="btn btn-danger position-absolute top-0 end-0" href="{% url 'login:evaluation_logout'%}" role="button">Logout</a> -->
 
         {% for permission, completed in permissions %}
 
@@ -46,15 +46,15 @@
 
                             {% if forloop.counter == 1 %}
                                 <p class="card-text">
-                                    <a href="https://app.prolific.com/submissions/complete?cc=CA2QEGLT" class="link-success link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover">Click here</a> to complete this part on Prolific.
+                                    <a href="https://app.prolific.com/submissions/complete?cc=CA2QEGLT" class="link-success link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover"><b>Click here</b></a> to complete this part on Prolific.
                                 </p>
                             {% elif forloop.counter == 2 %}
                                 <p class="card-text">
-                                    <a href="https://app.prolific.com/submissions/complete?cc=C60HSK7T" class="link-success link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover">Click here</a> to complete this part on Prolific.
+                                    <a href="https://app.prolific.com/submissions/complete?cc=C60HSK7T" class="link-success link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover"><b>Click here</b></a> to complete this part on Prolific.
                                 </p>
                             {% elif forloop.counter == 3 %}
                                 <p class="card-text">
-                                    <a href="https://app.prolific.com/submissions/complete?cc=CDZ0RIZL" class="link-success link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover">Click here</a> to complete this part on Prolific.
+                                    <a href="https://app.prolific.com/submissions/complete?cc=CDZ0RIZL" class="link-success link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover"><b>Click here</b></a> to complete this part on Prolific.
                                 </p>
                             {% endif %}
 

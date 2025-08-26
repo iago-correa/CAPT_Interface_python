@@ -138,3 +138,7 @@ def evaluation_logout(request):
         return redirect('evaluation/?error=' + error)
     else:
         return redirect('login:evaluation_login')
+    
+def study_explain(request):
+    
+    return render(request, 'login/study_evaluation.html')
