@@ -264,11 +264,11 @@ def evaluate(request, part_number):
         return redirect(f"{reverse('login:evaluation_login')}?{query_params}")
     
     if not is_authorized(rater, part_number):
-        error_message = 'This part is not available yet.'
+        error_message = 'Part ' + str(part_number).zfill(2) + ' is not available yet.'
         query_params = urlencode({'error': error_message})
         return redirect(f"{reverse('evaluate:select_part')}?{query_params}")
     if is_part_completed(rater, part_number):
-        message = 'This part is already complete.'
+        message = 'Part ' + str(part_number).zfill(2) + ' is completed.'
         query_params = urlencode({'success': message})
         return redirect(f"{reverse('evaluate:select_part')}?{query_params}")
     

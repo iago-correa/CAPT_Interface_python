@@ -26,7 +26,19 @@
             <div class="card mb-3">
                 <div class="card-body">
                     <h5 class="card-title">Evaluation part 0{{forloop.counter}}</h5>
-                    <p class="card-text">Description of this part。</p>
+                    {% if forloop.counter == 1 %}
+                        <p class="card-text">
+                            First part of the evaluation process, containing in total 254 recordings.
+                        </p>
+                    {% elif forloop.counter == 2 %}
+                        <p class="card-text">
+                            Second part of the evaluation process, containing in total 254 recordings.
+                        </p>
+                    {% elif forloop.counter == 3 %}
+                        <p class="card-text">
+                            Third and last part of the evaluation process, containing in total 252 recordings.
+                        </p>
+                    {% endif %}
                     <div class="mt-2">
                         {% if completed %}
                             <p class="text-success h6">This part was already completed.</p>
@@ -34,6 +46,15 @@
                             {% if permission %}
                                 <a class="btn btn-primary" href="{% url 'evaluate:evaluate' forloop.counter %}" role="button">Start</a>
                             {% else %}
+                                {% if forloop.counter == 2 %}
+                                    <p class="card-text">
+                                        Available after the part 01 has been completed and confirmed.
+                                    </p>
+                                {% elif forloop.counter == 3 %}
+                                    <p class="card-text">
+                                        Available after both parts 01 and 02 have been completed and confirmed.
+                                    </p>
+                                {% endif %}
                                 <a class="btn btn-secondary disabled" href="#" role="button" aria-disabled="true">Unavailable</a>
                             {% endif %}
                         {% endif %}
