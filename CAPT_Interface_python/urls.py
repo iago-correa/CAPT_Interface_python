@@ -24,7 +24,8 @@ urlpatterns = [
     path('', include('login.urls')),
     path('practice/', include('practice.urls')),
     path('record/', include('record.urls')),
-    path('evaluate/', include('evaluate.urls'))
+    path('evaluate/', include('evaluate.urls')),
+    path('demo/', include('kengaku.urls'))
 ]
 
 if settings.DEBUG:

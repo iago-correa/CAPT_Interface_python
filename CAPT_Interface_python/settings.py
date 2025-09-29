@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'practice',
     'record',
     'evaluate',
+    'kengaku'
 ]
 
 MIDDLEWARE = [
@@ -177,11 +178,14 @@ AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID', default=None)
 AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY', default=None)
 AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
 
-MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
+# MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
+MEDIA_URL = 'media/'
 MEDIA_ROOT = 'media/'
 
-STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
-STATIC_ROOT = 'static/'
+# STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
+STATIC_URL = 'static/'
+# STATIC_ROOT = 'static/'
+STATICFILES_DIRS = [BASE_DIR / "static"]
 
 IGNORED_STUDENTS = config('IGNORED_STUDENTS', cast=list_of_ints)
 
