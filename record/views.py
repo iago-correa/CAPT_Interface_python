@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.urls import reverse
 from django.utils import timezone
-# from django.conf import settings # Not directly used in this function after changes
+# from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.base import ContentFile
 from storages.backends.s3boto3 import S3Boto3Storage
@@ -11,7 +11,7 @@ from pydub import AudioSegment
 from random import shuffle
 import datetime
 import io
-import os # Still used for PID, but not for path joining for S3/DB
+import os 
 import logging
 
 logger = logging.getLogger(__name__)
@@ -82,7 +82,7 @@ def record(request, t):
         tried_formats = []
 
         try:
-            # --- Audio Pydub Loading Attempts (same as before) ---
+            # --- Audio Pydub Loading Attempts ---
             sensible_extensions = ['wav', 'webm', 'ogg', 'mp4', 'm4a', 'aac']
             if file_extension_from_client and file_extension_from_client in sensible_extensions:
                 logger.info(f"{pid_prefix} Attempt 1: Pydub load with client ext: '{file_extension_from_client}'")

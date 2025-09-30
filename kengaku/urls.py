@@ -4,5 +4,5 @@ from . import views
 app_name = 'kengaku'
 
 urlpatterns = [
-    path('', views.demo, name='demo'),
+    path('', views.demo, name='demo')
 ]

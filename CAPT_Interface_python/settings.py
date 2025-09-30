@@ -43,12 +43,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'storages',
+    'django_extensions',
     # My apps
     'login',
     'practice',
     'record',
     'evaluate',
-    'kengaku'
+    'kengaku',
 ]
 
 MIDDLEWARE = [
@@ -170,17 +171,17 @@ PERIOD_DATES = {
     'DELAY_END':        config('PERIOD_5_DELAY_END', cast=tuple_of_ints), 
 }
 
-DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+# DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
-AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME', default=None)
-AWS_S3_REGION_NAME = config('AWS_S3_REGION_NAME', default='ap-northeast-1')
-AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID', default=None)
-AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY', default=None)
-AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
+# AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME', default=None)
+# AWS_S3_REGION_NAME = config('AWS_S3_REGION_NAME', default='ap-northeast-1')
+# AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID', default=None)
+# AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY', default=None)
+# AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
 
 # MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
 MEDIA_URL = 'media/'
-MEDIA_ROOT = 'media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
 STATIC_URL = 'static/'
@@ -194,3 +195,7 @@ EVAL_PART2_RATERS = config('EVAL_PART2_RATERS', cast=list_of_ints)
 EVAL_PART3_RATERS = config('EVAL_PART3_RATERS', cast=list_of_ints)
 
 PARTS_PROPORTIONS = config('PARTS_PROPORTIONS', cast=list_of_ints)
+
+#CosyVoice related
+COSY_ROOT = config('COSY_ROOT')
+COSY_MODEL_DIR = config('COSY_MODEL_DIR')
