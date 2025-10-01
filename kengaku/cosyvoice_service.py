@@ -26,7 +26,10 @@ cosyvoice_model = None
 def init_cosy():
     global cosyvoice_model
     if cosyvoice_model is None:
-        cosyvoice_model = CosyVoice2(MODEL_DIR, load_jit=False, load_trt=False, fp16=False)
+        cosyvoice_model = CosyVoice2(MODEL_DIR, 
+                                     load_jit=False, 
+                                     load_trt=False, 
+                                     fp16=False)
     return cosyvoice_model
 
 def synthesize_zero_shot(prompt_wav_path, text, out_wav_path):
