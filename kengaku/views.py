@@ -43,22 +43,10 @@ def generate_golden_speaker(recording_path, gs_dir):
     prompt = load_wav(recording_path, 16000)  # same prompt for all synths
     
     for fname, text in SENTENCES_LIST:
-        out_wav = os.path.join(gs_dir, f"{fname}_cross_lingual.wav")
+        out_wav = os.path.join(gs_dir, f"{fname}.wav")
         
-        # for i, j in enumerate(cosyvoice_model.inference_zero_shot(text, "", prompt, stream=False)):
-        #     torchaudio.save(out_wav, j['tts_speech'], cosyvoice_model.sample_rate)        
-        
-        for audio in cosyvoice.inference_cross_lingual(
+        for audio in cosyvoice_model.inference_cross_lingual(
                 tts_text=text, 
-                prompt_speech_16k=prompt,
-                stream=False):
-            torchaudio.save(out_wav, audio['tts_speech'], cosyvoice_model.sample_rate)
-
-        out_wav = os.path.join(gs_dir, f"{fname}_zero_shot.wav")
-        
-        for audio in cosyvoice.inference_zero_shot(
-                tts_text=text, 
-                prompt_text=text,
                 prompt_speech_16k=prompt,
                 stream=False):
             torchaudio.save(out_wav, audio['tts_speech'], cosyvoice_model.sample_rate)
@@ -161,7 +149,7 @@ def demo(request):
         
     else: # GET request
         
-        user_id = '02'
+        user_id = '01'
         
         user_data_path  = os.path.join('media', 'recording', user_id)
         # Files not generated yet, need initial recording
