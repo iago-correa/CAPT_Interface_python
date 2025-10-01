@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.base import ContentFile
@@ -9,6 +9,8 @@ from .cosyvoice_service import init_cosy
 from cosyvoice.utils.file_utils import load_wav
 import os
 import io
+import glob
+import random
 import logging
 import torchaudio
 
@@ -43,10 +45,29 @@ def generate_golden_speaker(recording_path, gs_dir):
     prompt = load_wav(recording_path, 16000)  # same prompt for all synths
     
     for fname, text in SENTENCES_LIST:
-        out_wav = os.path.join(gs_dir, f"{fname}.wav")
+        # out_wav = os.path.join(gs_dir, f"{fname}.wav")
+        
+        # for audio in cosyvoice_model.inference_cross_lingual(
+        #         tts_text=text, 
+        #         prompt_speech_16k=prompt,
+        #         stream=False):
+        #     torchaudio.save(out_wav, audio['tts_speech'], cosyvoice_model.sample_rate)
+            
+        # out_wav = os.path.join(gs_dir, f"{fname}_cross_lingual.wav")
+        
+        out_wav = os.path.join(gs_dir, f"{fname}_cross.wav")
         
         for audio in cosyvoice_model.inference_cross_lingual(
                 tts_text=text, 
+                prompt_speech_16k=prompt,
+                stream=False):
+            torchaudio.save(out_wav, audio['tts_speech'], cosyvoice_model.sample_rate)
+
+        out_wav = os.path.join(gs_dir, f"{fname}_zero_shot.wav")
+        
+        for audio in cosyvoice_model.inference_zero_shot(
+                tts_text=text, 
+                prompt_text=SENTENCES_LIST[0][1],
                 prompt_speech_16k=prompt,
                 stream=False):
             torchaudio.save(out_wav, audio['tts_speech'], cosyvoice_model.sample_rate)
@@ -149,11 +170,21 @@ def demo(request):
         
     else: # GET request
         
-        user_id = '01'
+        user_id = request.session.get('user_id')
+        if not user_id:
+            
+            user_id = str(random.randint(1, 100))
+            
+            while os.path.isdir(os.path.join('media', 'gs', user_id)):
+                user_id = str(random.randint(1, 100))
+            
+            request.session['user_id'] = user_id
         
-        user_data_path  = os.path.join('media', 'recording', user_id)
-        # Files not generated yet, need initial recording
-        initial_rec = not os.path.isdir(user_data_path)
+        user_data_path  = os.path.join('media', 'gs', user_id)
+        # GS not generated yet, need initial recording
+        gs_files = glob.glob(os.path.join(user_data_path, '*.wav'))
+        gs_files = [f.split('/')[-1].split('.')[0] for f in gs_files]
+        initial_rec = not [s[0] for s in SENTENCES_LIST] in gs_files
         
         context = {'csrf_token_value': request.META.get('CSRF_COOKIE'),
                    'user_id': user_id,
@@ -161,3 +192,9 @@ def demo(request):
                    'audio_data': SENTENCES_LIST}
         
         return render(request, 'kengaku/demo.html', context)
+    
+def reset(request):
+    
+    request.session.flush()
+    
+    return redirect('kengaku:demo')

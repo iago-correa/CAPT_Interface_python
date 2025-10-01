@@ -3,13 +3,11 @@
 {% load audio_filters %}
 {% block content %}
 <div class="container mt-4">
-    <h1>発音練習デモ {{ period|add:1 }}</h1>
 
-    <p>Clean slate test</p>
-    <p>User {{ user_id }}</p>
-
-    <button class="testLockBtn">Lock</button>
-    <button class="testUnlockBtn">Unlock</button>
+    <div class="position-relative">
+        <h1>発音練習デモ</h1>
+        <a class="btn btn-danger position-absolute top-0 end-0" href="{% url 'kengaku:reset'%}" role="button">Reset</a>
+    </div>
     
     {% csrf_token %}
     {% for file_id, text in audio_data %}
@@ -33,7 +31,7 @@
                                 <div class="col-9">
                                     <div class="d-flex align-items-center gap-2">
                                         <audio id="audio_player_{{file_id}}" controls class="w-100">
-                                            <source src="/static/audio/native/{{file_id}}.mp3" type="audio/wav">
+                                            {% if not initial_rec %} <source src="/static/audio/native/{{file_id}}.mp3" type="audio/wav"> {% endif %}
                                         </audio>
                                     </div>
                                 </div>
@@ -67,7 +65,7 @@
 
                     <div class="col-auto">
                         <div class="d-grid">
-                            <button class="recordBtn btn btn-danger py-2" 
+                            <button class="recordBtn btn btn-primary py-2" 
                                     data-audio-id-rec="rec_{{file_id}}"
                                     {% if not forloop.first and initial_rec%} disabled {% endif %}>
                                 録音開始
@@ -109,15 +107,6 @@
             if (btn !== except) btn.disabled = false;
         });
     }
-    
-    const testLockBtn = document.querySelector('.testLockBtn');
-    const testUnlockBtn = document.querySelector('.testUnlockBtn');
-    testLockBtn.onclick = () => {
-        lockAllButtons();
-    };
-    testUnlockBtn.onclick = () => {
-        restoreAllButtons();
-    };
 
     document.querySelectorAll('.audio-block').forEach(block => {
         const audioId = block.dataset.audioId;
@@ -171,6 +160,7 @@
                                 player.src = `/media/${data.recording.url}?t=${timestamp}`;
                                 player.load();
                             }
+                            restoreAllButtons();
                         } else {
                             alert("録音の保存に失敗しました。");
                         }
@@ -182,7 +172,6 @@
                     recBtn.textContent = '録音開始';
                     recBtn.dataset.state = 'idle';
                     recBtn.disabled = false;
-                    restoreAllButtons();
                 });
             }
         };
