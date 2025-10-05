@@ -6,6 +6,7 @@ from django.core.files.storage import default_storage
 from django.http import JsonResponse
 from pydub import AudioSegment
 from .cosyvoice_service import init_cosy
+from cosyvoice.cli.cosyvoice import CosyVoice2
 from cosyvoice.utils.file_utils import load_wav
 import os
 import io
@@ -13,13 +14,15 @@ import glob
 import random
 import logging
 import torchaudio
+import multiprocessing as mp
+import time
 
 logger = logging.getLogger(__name__)
 
 SENTENCES_LIST = [
     ['sentence01', 'Learning English every day helps me speak clearly and understand others well.'],
     ['sentence02', 'Many people think of technology as a modern concept.'],
-    ['sentence03', 'This tool can help us to predict the weather design earthquake proof buildings or analyze DNA.'],
+    ['sentence03', 'This tool can help us to predict the weather, design earthquake proof buildings, or analyze DNA.'],
     ['sentence04', 'Humanity had finally entered the era of mobile computing in which the internet literally sits in our hands.']   
 ]
 
@@ -33,41 +36,22 @@ def path_from_id(user_id, wav_id):
 
 def generate_golden_speaker(recording_path, gs_dir):
 
-    waveform, sr = torchaudio.load(recording_path)
-    if sr != 16000:
-        resampler = torchaudio.transforms.Resample(orig_freq=sr, new_freq=16000)
-        waveform = resampler(waveform)
-        torchaudio.save(recording_path, waveform, 16000)
+    # waveform, sr = torchaudio.load(recording_path)
+    # if sr != 16000:
+    #     resampler = torchaudio.transforms.Resample(orig_freq=sr, new_freq=16000)
+    #     waveform = resampler(waveform)
+    #     torchaudio.save(recording_path, waveform, 16000)
 
     os.makedirs(gs_dir, exist_ok=True)
 
     cosyvoice_model = init_cosy()           
-    prompt = load_wav(recording_path, 16000)  # same prompt for all synths
+    prompt = load_wav(recording_path, 16000) # same prompt for all syntheses
     
     for fname, text in SENTENCES_LIST:
-        # out_wav = os.path.join(gs_dir, f"{fname}.wav")
-        
-        # for audio in cosyvoice_model.inference_cross_lingual(
-        #         tts_text=text, 
-        #         prompt_speech_16k=prompt,
-        #         stream=False):
-        #     torchaudio.save(out_wav, audio['tts_speech'], cosyvoice_model.sample_rate)
-            
-        # out_wav = os.path.join(gs_dir, f"{fname}_cross_lingual.wav")
-        
-        out_wav = os.path.join(gs_dir, f"{fname}_cross.wav")
+        out_wav = os.path.join(gs_dir, f"{fname}.wav")
         
         for audio in cosyvoice_model.inference_cross_lingual(
                 tts_text=text, 
-                prompt_speech_16k=prompt,
-                stream=False):
-            torchaudio.save(out_wav, audio['tts_speech'], cosyvoice_model.sample_rate)
-
-        out_wav = os.path.join(gs_dir, f"{fname}_zero_shot.wav")
-        
-        for audio in cosyvoice_model.inference_zero_shot(
-                tts_text=text, 
-                prompt_text=SENTENCES_LIST[0][1],
                 prompt_speech_16k=prompt,
                 stream=False):
             torchaudio.save(out_wav, audio['tts_speech'], cosyvoice_model.sample_rate)
@@ -153,7 +137,13 @@ def demo(request):
                 
                 recording_path = os.path.join(settings.MEDIA_ROOT, actual_path)
                 gs_dir = f"{settings.MEDIA_ROOT}/gs/{str(user_id)}"
+                
+                start_time = time.time()
                 generate_golden_speaker(recording_path, gs_dir)
+                end_time = time.time()
+                elapsed_time = end_time - start_time
+
+                print(f"Synthesis took {elapsed_time:.2f} seconds")
             
             return JsonResponse({
                 'status': 'success',
@@ -184,7 +174,7 @@ def demo(request):
         # GS not generated yet, need initial recording
         gs_files = glob.glob(os.path.join(user_data_path, '*.wav'))
         gs_files = [f.split('/')[-1].split('.')[0] for f in gs_files]
-        initial_rec = not [s[0] for s in SENTENCES_LIST] in gs_files
+        initial_rec = not sorted(gs_files) == sorted([s[0] for s in SENTENCES_LIST])
         
         context = {'csrf_token_value': request.META.get('CSRF_COOKIE'),
                    'user_id': user_id,

@@ -29,12 +29,5 @@ def init_cosy():
         cosyvoice_model = CosyVoice2(MODEL_DIR, 
                                      load_jit=False, 
                                      load_trt=False, 
-                                     fp16=False)
+                                     fp16=True)
     return cosyvoice_model
-
-def synthesize_zero_shot(prompt_wav_path, text, out_wav_path):
-
-    cosyvoice_model = init_cosy()
-    prompt = load_wav(prompt_wav_path, 16000)
-    for i, j in enumerate(cosyvoice_model.inference_zero_shot(text, "", prompt, stream=False)):
-        torchaudio.save(out_wav_path, j['tts_speech'], cosyvoice_model.sample_rate)
